@@ -9,8 +9,8 @@ const MAPS = [   // ordered easiest first
   {
     id: 'flats', name: 'Salt Flats', blurb: 'Wide-open desert with no roads and no walls. Chase anything, anywhere.',
     seed: 4409, open: 3, difficulty: 'Easiest', arena: true,
-    pal: { sky: 0x0b0d1c, fog: 0x141a2c, fogNear: 70, fogFar: 300, ground: 0x8a6a45, road: 0x8f8775, hemiSky: 0x7084c8, hemiGround: 0x3a3226, sea: null },
-    day: { sky: 0x9fd3f5, fog: 0xd9e6ee, fogNear: 110, fogFar: 420, hemiSky: 0xffffff, hemiGround: 0x9a7650, sea: null, ground: 0xa47e52 },
+    pal: { sky: 0x0b0d1c, fog: 0x141a2c, fogNear: 70, fogFar: 300, ground: 0xa6583c, road: 0x8f8775, hemiSky: 0x7084c8, hemiGround: 0x3a3226, sea: null },
+    day: { sky: 0xd9b6a3, fog: 0xd9b6a3, fogNear: 110, fogFar: 420, hemiSky: 0xfff0e6, hemiGround: 0xa6583c, sea: null, ground: 0xbf754b },
   },
   {
     id: 'seaside', name: 'Seaside Strip', blurb: 'Wide plazas, car parks and a beach. Room to roam and chase.',

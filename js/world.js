@@ -184,7 +184,7 @@ function buildMap(scene, map, layout) {
   cont.frustumCulled = false; let kc = 0;
   const CONT = [0xc0392b, 0x2f6fc0, 0xd8902a, 0x2f9a66, 0x8e44ad, 0xb8bcc4];
 
-  const rockMat = lam(0x8a5a3c), rockTop = lam(0x6d4630);
+  const rockMat = lam(0x734434), rockTop = lam(0x732f17);
   const GROUND = { camp: 0xa99f8a, park: 0x1c3a27, plaza: 0x4a4256, island: 0x433b4d, beach: 0x8f7650, carpark: 0x22242b, yard: 0x3a3e42, warehouse: 0x3a3e42, quay: 0x484e53 };
   for (const b of layout) {
     World.blocks.push(b);
