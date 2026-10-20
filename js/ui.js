@@ -56,7 +56,7 @@ const UI = {
     c.clearRect(0, 0, W, W);
     c.save(); c.beginPath(); c.arc(W / 2, W / 2, W / 2 - 1, 0, Math.PI * 2); c.clip();
     c.fillStyle = 'rgba(8,11,22,.88)'; c.fillRect(0, 0, W, W);
-    if (World.map.arena) { c.fillStyle = 'rgba(183,173,152,.35)'; c.fillRect(X(-SW), Y(-SW), (SIZE + SW * 2) * sc, (SIZE + SW * 2) * sc); }
+    if (World.map.arena) { c.fillStyle = 'rgba(191,117,75,.4)'; c.fillRect(X(-SW), Y(-SW), (SIZE + SW * 2) * sc, (SIZE + SW * 2) * sc); }
     for (const b of World.blocks) {
       if (b.type !== 'build' && !World.map.arena) { c.fillStyle = GROUND_COLOURS[b.type] || '#232838'; c.globalAlpha = .55; c.fillRect(X(b.x0), Y(b.z0), (b.x1 - b.x0) * sc, (b.z1 - b.z0) * sc); c.globalAlpha = 1; }
       c.fillStyle = '#2c3247';
