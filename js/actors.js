@@ -44,7 +44,7 @@ function initPeds(scene) {
   Peds.partM = ['legs', 'torso', 'head'].map(k => partMatrix(P('box', null, PED_PARTS[k].p, PED_PARTS[k].s)));
   for (let i = 0; i < PED_COUNT; i++) {
     const p = { idx: i, alive: true, respawnAt: 0 };
-    Peds.list.push(p); spawnPed(p, SIZE / 2, SIZE / 2, 0);
+    Peds.list.push(p);   // placed when a map loads
   }
 }
 function spawnPed(p, px, pz, minDist) {
@@ -154,6 +154,7 @@ class Car {
     this.node = { i: B.i + d2.dx, j: B.j + d2.dz }; this.dir = d2;
   }
   update(dt, cars, player) {
+    if (this.parked) return;
     if (!this.targets.length) this.plan();
     const t = this.targets[0];
     const dx = t.x - this.x, dz = t.z - this.z, dist = Math.hypot(dx, dz);

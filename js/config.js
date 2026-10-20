@@ -16,7 +16,7 @@ const START = { x: (N / 2) * CELL + CELL * .4, z: (N / 2) * CELL };   // on the 
 // ---- Player tiers (design draft: 4 tiers, mid-run growth) ----
 // smash level = tier index + 1. An object of size S is:
 //   S <= level      -> smashable
-//   S == level + 1  -> bounce off, lose health
+//   S == level + 1  -> bounce off, costs tank
 //   S >= level + 2  -> instant wreck
 const TIERS = [
   // cruise = auto-throttle speed, boost = nitro top speed (m/s), accel (m/s²), steer (rad/s), grip (lateral bite)
@@ -33,7 +33,7 @@ const DRIFT_KEEP = .9;         // how much speed a slide keeps (1 = no loss)
 const SLIDE_MIN_SPEED = 15;    // hard turns only slide above this speed (m/s)
 const DASH_BELOW = 11;         // Crazy Dash works below this speed (m/s)
 const DASH_KICK = 1.1;         // dash launches you to cruise x this
-const REVERSE_SPEED = 9;       // holding brake at a standstill reverses (m/s)
+const REVERSE_SPEED = 9;       // backing-off speed when you get stuck against a wall (m/s)
 const GRAVITY = 32;
 const RAMP_COUNT = 22;
 
@@ -81,20 +81,21 @@ const FOOD_TRUCKS = 4;
 const GOLDEN_CHANCE = 0.04;   // golden targets are worth 5x
 
 // ---- Survival ----
-const FUEL_DRAIN = 1.8;       // per second, for the sedan
+// One Tank bar: it drains over time and when you bump things, refills when you smash. Empty = run over.
+const FUEL_DRAIN = 1.8;       // tank per second, for the sedan
 const FUEL_TIER = .2;         // each tier up burns this much more (bigger = thirstier)
 const BOOST_DRAIN = 3.5;      // extra per second while boosting
-const BOUNCE_DAMAGE = 34;     // hitting something one tier above you
+const BOUNCE_DAMAGE = 22;     // tank lost hitting something one size up (or a wall at speed)
 const COMBO_WINDOW = 2.5;     // seconds between smashes to keep the combo
 const COMBO_MAX = 10;
 const NEAR_MISS_PTS = 20;
 
 // ---- Boost rewards ----
-const BOOST_LINGER = 1;       // seconds boost keeps going after you let go (brake cancels it)
+const BOOST_LINGER = 1;       // seconds boost keeps going after you let go
 const BOOST_SCORE = 2;        // points multiplier for smashes while boosting
 const BOOST_FUEL = 1.5;       // smashes refuel this much more while boosting
 const RAM_AT = 1;             // while boosting above this share of cruise speed you Power Ram...
-const RAM_DAMAGE = 8;         // ...through amber objects (one size up), for a little health
+const RAM_DAMAGE = 6;         // ...through amber objects (one size up), for a little tank
 const Ram = { on: false };
 
 // ---- Tiny prey (2+ sizes below you) ----
@@ -106,7 +107,6 @@ const HEAT_DECAY = 6;
 const HEAT_TIER = [1, 1.6, 2.6, 4];           // bigger smashes are expected later, so heat builds proportionally
 const POLICE_BY_TIER = ['police', 'psuv', 'swat', 'riot'];   // always one size up from you
 const POLICE_SPEED = .45;     // police top speed sits this far between your cruise (0) and boost (1) speed
-const ROADBLOCK_EVERY = 11;   // seconds between roadblocks at 2+ stars
 
 // ---- Coins ----
 const COINS_PER = 100;         // score points per coin at the end of a run

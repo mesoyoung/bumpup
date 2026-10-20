@@ -9,7 +9,6 @@ const Input = { steer: 0, boost: false, brake: false, hop: false, keys: {}, kSte
 // ---------- One-finger touch gestures ----------
 //   drag left/right ............ steer (hard drag at speed = slide)
 //   double-tap and hold ........ boost (release to stop)
-//   swipe down and hold ........ brake; hold at a stop to reverse; let go slow = Crazy Dash
 //   swipe up ................... hop
 //   two fingers ................ pause
 function initInput(canvas) {
@@ -50,8 +49,7 @@ function initInput(canvas) {
     // a quick, mostly-vertical flick is a swipe; steering restarts from where the finger is
     if (!T.swiped && age < SWIPE_TIME && Math.abs(dy) > SWIPE_PX && Math.abs(dy) > Math.abs(dx) * 1.4) {
       T.swiped = true; T.ox = e.clientX;
-      if (dy > 0) { Input.brake = true; Input.boost = false; T.mode = 'brake'; hint.classList.add('brake'); hint.classList.remove('boost'); }
-      else Input.hop = true;
+      if (dy < 0) Input.hop = true;   // swipe up = hop (swipe down does nothing)
     }
     const sx = e.clientX - T.ox;
     knob.style.transform = `translateX(${clamp(sx / STEER_PX, -1, 1) * 34}px)`;
@@ -79,10 +77,9 @@ function readInput(dt) {
   let ts = 0;
   if (T && T.cx != null) { const sx = T.cx - T.ox; ts = Math.abs(sx) < 6 ? 0 : clamp(sx / STEER_PX, -1, 1); }
   Input.steer = Input.kSteer || ts;
-  const kb = !!(K.ShiftLeft || K.ShiftRight || K.Space), kbr = !!(K.ArrowDown || K.KeyS);
-  if (T) { Input.boost = T.mode === 'boost'; Input.brake = T.mode === 'brake'; }
-  else { Input.boost = kb; Input.brake = kbr; }
-  if (T && (kb || kbr)) { Input.boost = Input.boost || kb; Input.brake = Input.brake || kbr; }
+  const kb = !!(K.ShiftLeft || K.ShiftRight || K.Space);
+  Input.boost = (T && T.mode === 'boost') || kb;
+  Input.brake = false;   // no brake: Crazy Dash = boost from slow; getting stuck backs you off automatically
 }
 
 const Player = {
@@ -120,7 +117,7 @@ const Player = {
     this.tier = 0; this.level = 1;
     this.x = START.x; this.z = START.z; this.h = Math.PI / 2;
     this.vx = 0; this.vz = 0; this.y = 0; this.vy = 0; this.yawRate = 0; this.speed = 0;
-    this.health = 100; this.fuelMax = Garage.fuelMax; this.fuel = this.fuelMax; this.invuln = 0; this.alive = true;
+    this.fuelMax = Garage.fuelMax; this.fuel = this.fuelMax; this.invuln = 0; this.alive = true;
     this.grow = 1; this.roll = 0; this.pitch = 0; this.boosting = false; this.boostHold = 0; this.drifting = false;
     this.driftT = 0; this.brakeT = 0; this.reversing = false; this.stuckT = 0; this.unstuckT = 0; this.hopCD = 0; this.dashT = 0; this.dashCD = 0; this.air = 0;
     this.prevBrake = false; this.prevBoost = false; this.lastFwd = 0;
@@ -128,7 +125,7 @@ const Player = {
     this.build(scene, paint);
   },
   setTier(t) {
-    this.tier = t; this.level = t + 1; this.health = 100;
+    this.tier = t; this.level = t + 1; this.fuel = this.fuelMax;   // growing tops up the tank
     this.scene.remove(this.glow, this.beam);
     this.build(this.scene, this.paint);
     this.grow = 0; // play the growth animation
@@ -151,7 +148,7 @@ const Player = {
     let vL = this.vx * fz - this.vz * fx;
     const outOfFuel = this.fuel <= 0;
 
-    // ---- Crazy Dash: let go of the brake at low speed, or boost from a near-stop ----
+    // ---- Crazy Dash: boost from a near-stop ----
     this.dashCD = Math.max(0, this.dashCD - dt);
     const brakeReleased = this.prevBrake && !Input.brake;
     const boostPressed = Input.boost && !this.prevBoost;

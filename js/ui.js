@@ -14,7 +14,7 @@ const UI = {
 
   show(screen) {
     for (const id of ['titleScreen', 'pauseScreen', 'overScreen']) $(id).hidden = id !== screen;
-    if (screen !== 'titleScreen') this.closeSheet();
+    if (screen !== 'titleScreen') { this.closeSheet(); this.closeMaps(); }
     $('hud').hidden = !(screen === null || screen === 'pauseScreen');
   },
 
@@ -36,10 +36,9 @@ const UI = {
     const pend = $('pending');
     if (G.pending > 0) { pend.textContent = '+' + fmt(G.pending); pend.classList.add('on'); } else pend.classList.remove('on');
 
-    $('hpFill').style.transform = `scaleX(${P.health / 100})`;
-    $('hpBar').classList.toggle('low', P.health <= 34);
     $('fuelFill').style.transform = `scaleX(${P.fuel / P.fuelMax})`;
-    $('fuelBar').classList.toggle('low', P.fuel / P.fuelMax < .25);
+    const tank = P.fuel / P.fuelMax;
+    $('fuelBar').classList.toggle('low', tank < .25); $('fuelBar').classList.toggle('mid', tank >= .25 && tank < .5);
     $('speed').textContent = Math.round(Math.hypot(P.vx, P.vz) * 3.6);
     $('boostTag').classList.toggle('on', P.boosting);
     $('ramTag').classList.toggle('on', Ram.on);
@@ -58,8 +57,9 @@ const UI = {
     c.save(); c.beginPath(); c.arc(W / 2, W / 2, W / 2 - 1, 0, Math.PI * 2); c.clip();
     c.fillStyle = 'rgba(8,11,22,.88)'; c.fillRect(0, 0, W, W);
     for (const b of World.blocks) {
-      c.fillStyle = b.type === 'park' ? '#173322' : '#232838';
-      c.fillRect(X(b.x0), Y(b.z0), (b.x1 - b.x0) * sc, (b.z1 - b.z0) * sc);
+      if (b.type !== 'build') { c.fillStyle = GROUND_COLOURS[b.type] || '#232838'; c.globalAlpha = .55; c.fillRect(X(b.x0), Y(b.z0), (b.x1 - b.x0) * sc, (b.z1 - b.z0) * sc); c.globalAlpha = 1; }
+      c.fillStyle = '#2c3247';
+      for (const x of b.boxes) c.fillRect(X(x.x0), Y(x.z0), (x.x1 - x.x0) * sc, (x.z1 - x.z0) * sc);
     }
     // food trucks: a green cross, pinned to the rim with a pulse when it's off the map
     for (const f of G.food) if (f.alive) {
@@ -80,10 +80,10 @@ const UI = {
     c.restore();
   },
 
-  // ---------- arrow to the nearest food truck when you're low on fuel or health ----------
+  // ---------- arrow to the nearest food truck when your tank is low ----------
   foodArrow(G, P) {
     const el = $('foodArrow');
-    const need = P.alive && (P.fuel / P.fuelMax < .35 || P.health <= 40);
+    const need = P.alive && P.fuel / P.fuelMax < .35;
     let best = null, bd = 1e9;
     if (need) for (const f of G.food) if (f.alive) { const d = Math.hypot(f.x - P.x, f.z - P.z); if (d < bd) { bd = d; best = f; } }
     if (!best || bd < 35) { el.classList.remove('on'); return; }
@@ -178,6 +178,62 @@ const UI = {
     $('sheetClose').focus();
   },
   closeSheet() { $('sheetWrap').hidden = true; this.sheet = null; },
+
+  // ---------- map picker (swipe the cards left / right) ----------
+  mapLabel(map) { $('mapName').textContent = map.name; },
+  openMaps(currentId, onPick) {
+    const track = $('mapTrack');
+    if (!track.dataset.built) {
+      track.innerHTML = MAPS.map((m, i) => `<article class="map-card" data-i="${i}" data-id="${m.id}">
+        <canvas width="300" height="300" class="mc-preview" aria-label="Top-down view of ${m.name}"></canvas>
+        <div class="mc-info"><h3>${m.name}</h3><p>${m.blurb}</p>
+          <div class="mc-pills"><span class="pill d-${m.difficulty.toLowerCase()}">${m.difficulty}</span><span class="pill">Open space ${'●'.repeat(m.open)}${'○'.repeat(3 - m.open)}</span></div>
+          <button class="btn primary mc-go" data-id="${m.id}">Drive here</button></div></article>`).join('');
+      track.querySelectorAll('.map-card').forEach((card, i) => drawMapPreview(card.querySelector('canvas'), MAPS[i]));
+      $('mapDots').innerHTML = MAPS.map((m, i) => `<button class="dot" data-i="${i}" aria-label="${m.name}"></button>`).join('');
+      track.addEventListener('scroll', () => { clearTimeout(this.st); this.st = setTimeout(() => this.syncDots(), 60); });
+      $('mapDots').addEventListener('click', e => { const d = e.target.closest('.dot'); if (d) this.goMap(+d.dataset.i); });
+      $('mapPrev').addEventListener('click', () => this.goMap(this.mapIndex - 1));
+      $('mapNext').addEventListener('click', () => this.goMap(this.mapIndex + 1));
+      $('mapClose').addEventListener('click', () => this.closeMaps());
+      addEventListener('keydown', e => {
+        if ($('mapPicker').hidden) return;
+        if (e.code === 'ArrowLeft') this.goMap(this.mapIndex - 1);
+        if (e.code === 'ArrowRight') this.goMap(this.mapIndex + 1);
+        if (e.code === 'Escape') this.closeMaps();
+        if (e.code === 'Enter') track.querySelectorAll('.mc-go')[this.mapIndex].click();
+      });
+      track.addEventListener('click', e => { const b = e.target.closest('.mc-go'); if (b) this.onPick(b.dataset.id); });
+      track.dataset.built = '1';
+    }
+    this.onPick = onPick; this.currentMap = currentId;
+    track.querySelectorAll('.map-card').forEach(card => {
+      const cur = card.dataset.id === currentId, pills = card.querySelector('.mc-pills');
+      pills.querySelector('.current')?.remove();
+      if (cur) pills.insertAdjacentHTML('beforeend', '<span class="pill current">Current</span>');
+    });
+    $('mapPicker').hidden = false;
+    const i = MAPS.findIndex(m => m.id === currentId);
+    this.goMap(i, true);   // reading layout here forces it, so no need to wait a frame
+  },
+  goMap(i, instant) {
+    i = clamp(i, 0, MAPS.length - 1); this.mapIndex = i;
+    const card = $('mapTrack').children[i];
+    $('mapTrack').scrollTo({ left: card.offsetLeft - ($('mapTrack').clientWidth - card.clientWidth) / 2, behavior: instant ? 'auto' : 'smooth' });
+    this.markDots(i);
+  },
+  syncDots() {
+    const t = $('mapTrack'), mid = t.scrollLeft + t.clientWidth / 2;
+    let best = 0, bd = 1e9;
+    [...t.children].forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.clientWidth / 2 - mid); if (d < bd) { bd = d; best = i; } });
+    this.mapIndex = best; this.markDots(best);
+  },
+  markDots(i) {
+    document.querySelectorAll('#mapDots .dot').forEach((d, k) => d.classList.toggle('on', k === i));
+    document.querySelectorAll('.map-card').forEach((c, k) => c.classList.toggle('focus', k === i));
+    $('mapPrev').disabled = i === 0; $('mapNext').disabled = i === MAPS.length - 1;
+  },
+  closeMaps() { $('mapPicker').hidden = true; },
   missionPop(text, reward) {
     const el = $('missionPop');
     $('mpText').textContent = text; $('mpReward').textContent = `+${fmt(reward)} coins`;

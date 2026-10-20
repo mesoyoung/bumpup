@@ -16,7 +16,7 @@ const Game = {
   scene.background = new THREE.Color(0x070a16);
   scene.fog = new THREE.Fog(0x0a0e1e, 45, 230);
   const camera = new THREE.PerspectiveCamera(62, 1, .5, 1000);
-  scene.add(new THREE.HemisphereLight(0x7084c8, 0x20121c, .75));
+  const hemi = new THREE.HemisphereLight(0x7084c8, 0x20121c, .75); scene.add(hemi);
   const moon = new THREE.DirectionalLight(0x9db4ff, .55); moon.position.set(-1, 2, .6); scene.add(moon);
   scene.add(new THREE.AmbientLight(0xffb070, .12));
 
@@ -27,7 +27,6 @@ const Game = {
   }
   addEventListener('resize', resize); resize();
 
-  buildWorld(scene);
   initPeds(scene);
   initParticles(scene);
   initInput(canvas);
@@ -36,7 +35,7 @@ const Game = {
   const G = Game.G;
   const save = {
     best: store.get('best', 0), coins: store.get('coins', 0),
-    paint: store.get('paint', 'blue'), owned: store.get('owned', ['blue']),
+    paint: store.get('paint', 'blue'), owned: store.get('owned', ['blue']), map: store.get('map', 'seaside'),
   };
   const paintColor = () => (PAINTS.find(p => p.id === save.paint) || PAINTS[0]).color;
   const emitters = [];
@@ -56,27 +55,6 @@ const Game = {
     if (!spot) { p.remove(); return; }
     p.place(spot); p.setThreat(Player.level); G.police.push(p);
   }
-  // Two units parked across the road you're heading down
-  function spawnRoadblock() {
-    const P = Player, alongX = Math.abs(P.fx) > Math.abs(P.fz);
-    const line = Math.round((alongX ? P.z : P.x) / CELL) * CELL;
-    if (Math.abs((alongX ? P.z : P.x) - line) > RW) return false;          // not on a road
-    const dir = Math.sign(alongX ? P.fx : P.fz);
-    let along = (alongX ? P.x : P.z) + dir * 75;
-    const m = ((along % CELL) + CELL) % CELL;
-    if (m < SW + 3) along += dir > 0 ? SW + 3 - m : -(m + SW + 3);                  // keep out of intersections
-    else if (m > CELL - SW - 3) along += dir > 0 ? CELL - m + SW + 3 : -(m - (CELL - SW - 3));
-    if (along < SW || along > SIZE - SW) return false;
-    const kind = POLICE_BY_TIER[P.tier], hl = KINDS[kind].hl, n = Math.ceil(RW / hl);
-    for (let k = 0; k < n; k++) {
-      const lat = (k - (n - 1) / 2) * hl * 1.96;
-      const p = new Police(scene, kind, 'block');
-      p.x = alongX ? along : line + lat; p.z = alongX ? line + lat : along;
-      p.h = alongX ? 0 : Math.PI / 2; p.v = 0; p.sync(); p.setThreat(P.level); G.police.push(p);
-    }
-    UI.toast('Roadblock ahead! Hop it, ram it or find another way');
-    return true;
-  }
   function setThreatAll(level) {
     for (const k in World.batches) World.batches[k].setThreat(level);
     setPedThreat(level);
@@ -95,9 +73,43 @@ const Game = {
     for (const d of Debris.list) d.scene.remove(d.obj);
     Debris.list = []; emitters.length = 0;
     for (let i = 0; i < TRAFFIC_COUNT; i++) spawnTraffic(35);
+    spawnParked();
     if (!G.food.length) for (let i = 0; i < FOOD_TRUCKS; i++) G.food.push(new FoodTruck(scene));
     const taken = []; for (const f of G.food) { f.placeRandom(Player.x, Player.z, taken); taken.push(f.spot); }
   }
+  // Parked cars in car parks: smashable, they don't drive and aren't replaced once wrecked
+  function spawnParked() {
+    for (const s of World.parkSpots) {
+      const c = new Car(scene, s.kind); c.parked = true;
+      c.x = s.x; c.z = s.z; c.h = s.rot; c.v = 0; c.sync(); c.setThreat(Player.level || 1);
+      G.traffic.push(c);
+    }
+  }
+  // ---------- maps ----------
+  function applyPalette(map) {
+    const p = map.pal;
+    scene.background.setHex(p.sky); scene.fog.color.setHex(p.fog); scene.fog.near = p.fogNear; scene.fog.far = p.fogFar;
+    hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGround);
+  }
+  function loadMap(id) {
+    const map = mapById(id);
+    for (const c of G.traffic) c.remove();
+    for (const p of G.police) p.remove();
+    G.traffic = []; G.police = [];
+    for (const d of Debris.list) d.scene.remove(d.obj);
+    Debris.list = []; emitters.length = 0;
+    clearWorld(scene); buildWorld(scene, map); applyPalette(map);
+    Player.x = START.x; Player.z = START.z;
+    for (let i = 0; i < TRAFFIC_COUNT; i++) spawnTraffic(0);
+    spawnParked();
+    for (const p of Peds.list) spawnPed(p, START.x, START.z, 20);
+    const taken = []; for (const f of G.food) { f.placeRandom(START.x, START.z, taken); taken.push(f.spot); }
+    setThreatAll(1); applyPropTier(0);
+    save.map = map.id; store.set('map', map.id);
+    UI.mapLabel(map);
+  }
+  Game.loadMap = loadMap;
+
   function startRun() {
     Sound.init(); Sound.resume();
     Player.reset(scene, paintColor());
@@ -169,7 +181,7 @@ const Game = {
     // police come back one size up; far-off traffic re-rolls so the mix matches your new size
     for (const p of G.police) p.remove(); G.police = [];
     G.traffic = G.traffic.filter(c => {
-      if (Math.hypot(c.x - Player.x, c.z - Player.z) > 60 && Math.random() < .6) { c.remove(); G.respawnQueue.push(G.time + rand(.2, 4)); return false; }
+      if (!c.parked && Math.hypot(c.x - Player.x, c.z - Player.z) > 60 && Math.random() < .6) { c.remove(); G.respawnQueue.push(G.time + rand(.2, 4)); return false; }
       return true;
     });
     setThreatAll(Player.level);
@@ -195,7 +207,7 @@ const Game = {
     G.counts[k.group] = (G.counts[k.group] || 0) + 1;
     if (k.size >= G.biggestSize) { G.biggestSize = k.size; G.biggest = k.name; }
     if (!tiny) P.fuel = Math.min(P.fuelMax, P.fuel + k.fuel * (obj.golden ? 3 : 1) * (P.boosting ? BOOST_FUEL : 1));
-    if (ram) { P.health -= RAM_DAMAGE * Garage.damage; G.shake = Math.max(G.shake, .5); UI.flash('gold'); }
+    if (ram) { P.fuel -= RAM_DAMAGE * Garage.damage; G.shake = Math.max(G.shake, .5); UI.flash('gold'); }
     G.heat += k.pts * (obj instanceof Police ? 3 : 1) * (tiny ? TINY_PTS : 1) / HEAT_TIER[P.tier]; G.lastSmash = G.time;
     // launch it
     const push = 1.15 + (P.level - k.size) * .25;
@@ -211,7 +223,7 @@ const Game = {
     } else { // car or police
       obj.alive = false; obj.mesh.remove(obj.ring);
       launchDebris(scene, obj.mesh, obj.x, obj.z, obj.h, vx * .8, vz * .8, up, 5);
-      if (!(obj instanceof Police)) G.respawnQueue.push(G.time + 3);
+      if (!(obj instanceof Police) && !obj.parked) G.respawnQueue.push(G.time + 3);
     }
     // juice
     const col = { ped: [obj.shirt || 0xffffff, 0xffffff], bin: [0x2f6b3c, 0xb5a17a, 0xdddddd], cone: [0xff6a00, 0xffffff], hydrant: [0x3aa0ff, 0xd62828],
@@ -223,7 +235,7 @@ const Game = {
     Sound.smash(kind, k.size); if (!tiny && G.combo > 1) Sound.combo(G.combo);
     const label = (ram ? 'POWER RAM ' : '') + `+${fmt(pts)}` + (gold > 1 ? ' GOLD' : '') + (!tiny && G.combo > 1 ? `  x${G.combo}` : '');
     addScore(pts, x, 2.5 + k.size * .6, z, label, tiny ? 'tiny' : gold > 1 ? 'gold' : ram ? 'ram' : boost > 1 ? 'boosted' : k.size === P.level ? 'big' : '');
-    if (ram && P.health <= 0) die(`Rammed one ${KINDS[kind].name.toLowerCase()} too many`);
+    if (ram && P.fuel <= 0) die(`Rammed one ${KINDS[kind].name.toLowerCase()} too many`);
   }
 
   function bounce(obj, kind, res, mover) {
@@ -233,20 +245,20 @@ const Game = {
     if (into > 0) { P.vx += res.nx * into * 1.5; P.vz += res.nz * into * 1.5; }
     if (mover) { mover.x -= res.nx * .4; mover.z -= res.nz * .4; mover.v *= .3; }
     if (P.invuln > 0) return;
-    P.scaleSpeed(.45); P.drifting = false; P.health -= BOUNCE_DAMAGE * Garage.damage; P.invuln = .9;
+    P.scaleSpeed(.45); P.drifting = false; P.fuel -= BOUNCE_DAMAGE * Garage.damage; P.invuln = .9;
     G.shake = Math.max(G.shake, .5); Sound.bonk(); UI.flash('red');
     emit(P.x + res.nx * -1, 1.2, P.z - res.nz, 14, [0xffd23a, 0xffffff, 0xff7b00], { speed: 8, up: 6, size: .18 });
     const need = TIERS.find(t => TIERS.indexOf(t) + 1 >= KINDS[kind].size);
-    if (P.health <= 0) die(`Wrecked by a ${KINDS[kind].name.toLowerCase()}`);
+    if (P.fuel <= 0) die(`Wrecked by a ${KINDS[kind].name.toLowerCase()}`);
     else UI.toast(`Too big! ${KINDS[kind].name}s need a ${need ? need.name : 'bigger ride'}`);
   }
   function onWall(into) {
     const P = Player;
     if (P.invuln > 0 || into < 12) { G.shake = Math.max(G.shake, .15); Sound.bonk(); return; }
-    P.health -= Math.min(BOUNCE_DAMAGE, into * 1.1) * Garage.damage; P.invuln = .7;
+    P.fuel -= Math.min(BOUNCE_DAMAGE, into * 1.1) * Garage.damage; P.invuln = .7;
     G.shake = Math.max(G.shake, .45); Sound.bonk(); UI.flash('red');
     emit(P.x + P.fx * P.half, 1, P.z + P.fz * P.half, 12, [0xffd23a, 0xffffff], { speed: 7, up: 5, size: .16 });
-    if (P.health <= 0) die('Wrecked against a building');
+    if (P.fuel <= 0) die('Wrecked against a building');
   }
 
   // test the player against one object; returns true if it touched
@@ -333,8 +345,8 @@ const Game = {
       if (!f.alive) continue;
       for (const c of P.circles()) if (circleOBB(c.x, c.z, c.r, f.x, f.z, f.rot, f.hl, f.hw)) {
         f.alive = false; f.mesh.visible = false; f.respawnAt = G.time + 25;
-        P.fuel = Math.min(P.fuelMax, P.fuel + 55); P.health = Math.min(100, P.health + 40);
-        Sound.pickup(); UI.flash('green'); UI.toast('Food truck: refuelled and repaired'); Missions.event('food');
+        P.fuel = Math.min(P.fuelMax, P.fuel + 60);
+        Sound.pickup(); UI.flash('green'); UI.toast('Food truck: tank topped up'); Missions.event('food');
         emit(f.x, 2, f.z, 30, [0x3dff8f, 0xff4fa3, 0xffffff], { speed: 9, up: 10, size: .3 });
         break;
       }
@@ -358,7 +370,6 @@ const Game = {
     });
     const chasing = G.police.filter(p => p.mode === 'chase').length;
     if (chasing < want && Math.random() < dt * .6) spawnPolice();
-    if (stars >= 2 && G.time - (G.lastBlock || 0) > ROADBLOCK_EVERY) { if (spawnRoadblock()) G.lastBlock = G.time; else G.lastBlock = G.time - ROADBLOCK_EVERY + 1; }
     let near = 999; for (const p of G.police) near = Math.min(near, Math.hypot(p.x - Player.x, p.z - Player.z));
     Sound.siren(G.police.length ? clamp(1 - near / 140, .15, 1) : 0);
   }
@@ -438,7 +449,7 @@ const Game = {
         for (const k in World.batches) if (World.batches[k].threat === 'bounce') World.batches[k].ringMat.opacity = o;
       }
       collide();
-      if (playing && Player.alive && Player.fuel <= 0 && Player.speed < 1.5) die('Out of fuel');
+      if (playing && Player.alive && Player.fuel <= 0 && Player.speed < 1.5) die('Tank ran dry');
       if (G.comboTimer > 0) { G.comboTimer -= dt; if (G.comboTimer <= 0) { G.combo = 0; G.pending = 0; } }
       updateHeat(dt);
       // respawn smashed props and cars away from the player
@@ -498,11 +509,16 @@ const Game = {
     addCoins(reward); Sound.pickup(); UI.missionPop(Missions.label(m), reward);
   };
   Missions.onSetComplete = (level, bonus) => addCoins(bonus);
+  $('mapBtn').addEventListener('click', () => UI.openMaps(save.map, id => {
+    // picking a map rebuilds the city, then drives straight off from the new start
+    if (id !== save.map) loadMap(id);
+    UI.closeMaps(); startRun();
+  }));
   document.querySelectorAll('.nav-btn[data-sheet]').forEach(b => b.addEventListener('click', () => UI.openSheet(b.dataset.sheet)));
   $('sheetClose').addEventListener('click', () => UI.closeSheet());
   $('sheetWrap').addEventListener('click', e => { if (e.target === $('sheetWrap')) UI.closeSheet(); });
   addEventListener('keydown', e => {
-    if (Game.state !== 'title') return;
+    if (Game.state !== 'title' || !$('mapPicker').hidden) return;
     if (e.code === 'Escape' && UI.sheet) UI.closeSheet();
     else if (e.code === 'Enter' && !UI.sheet && document.activeElement === document.body) startRun();
   });
@@ -526,10 +542,9 @@ const Game = {
   addEventListener('blur', () => { if (Game.state === 'play') Game.onPauseKey(); });
 
   // attract mode: city traffic running behind the title screen
-  Player.x = SIZE / 2; Player.z = SIZE / 2; Player.level = 1;
-  for (let i = 0; i < TRAFFIC_COUNT; i++) spawnTraffic(0);
-  G.food = []; for (let i = 0; i < FOOD_TRUCKS; i++) { const f = new FoodTruck(scene); f.placeRandom(-999, -999); G.food.push(f); }
-  setThreatAll(1);
+  Player.x = START.x; Player.z = START.z; Player.level = 1;
+  G.food = []; for (let i = 0; i < FOOD_TRUCKS; i++) G.food.push(new FoodTruck(scene));
+  loadMap(save.map);
   toTitle();
   requestAnimationFrame(frame);
 })();

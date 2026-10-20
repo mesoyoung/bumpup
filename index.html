@@ -36,8 +36,7 @@
   </div>
 
   <div class="hud-vitals">
-    <div class="vital"><span class="lbl">Health</span><div id="hpBar" class="bar hp"><span id="hpFill"></span></div></div>
-    <div class="vital"><span class="lbl">Fuel</span><div id="fuelBar" class="bar fuel"><span id="fuelFill"></span></div></div>
+    <div class="vital"><span class="lbl">Tank</span><div id="fuelBar" class="bar fuel tank"><span id="fuelFill"></span></div></div>
   </div>
 
   <div class="hud-speed">
@@ -47,7 +46,7 @@
 
   <div id="gestures" class="gestures">
     <span><b>Drag</b> steer</span><span><b>Double-tap, hold</b> boost</span>
-    <span><b>Swipe down, hold</b> brake</span><span><b>Swipe up</b> hop</span>
+    <span><b>Swipe up</b> hop</span><span><b>Two fingers</b> pause</span>
   </div>
   <div id="steerHint" class="steer-hint"><span id="steerKnob"></span></div>
 
@@ -71,6 +70,7 @@
   </header>
   <div class="land-bottom">
     <p class="tagline">Smash anything smaller. Grow into something bigger.</p>
+    <button id="mapBtn" class="map-btn" aria-label="Change map"><small>Map</small><b id="mapName">Seaside Strip</b><span class="mb-change">Change ›</span></button>
     <nav class="land-nav" aria-label="Menus">
       <button class="nav-btn" data-sheet="missions"><span class="nb-label">Missions</span><span id="missionBadge" class="nb-badge">0/3</span></button>
       <button class="nav-btn" data-sheet="garage"><span class="nb-label">Garage</span></button>
@@ -80,6 +80,17 @@
     </nav>
     <button id="playBtn" class="btn primary drive">Drive</button>
   </div>
+</section>
+
+<!-- ============ Map picker: swipe through the maps ============ -->
+<section id="mapPicker" class="map-picker" hidden>
+  <header class="mp-headbar"><h2>Choose a map</h2><button id="mapClose" class="icon-btn close" aria-label="Close">✕</button></header>
+  <div class="mp-stage">
+    <button id="mapPrev" class="mp-arrow" aria-label="Previous map">‹</button>
+    <div id="mapTrack" class="map-track"></div>
+    <button id="mapNext" class="mp-arrow" aria-label="Next map">›</button>
+  </div>
+  <div id="mapDots" class="mp-dots"></div>
 </section>
 
 <!-- ============ Menu sheets (open over the landing screen) ============ -->
@@ -101,24 +112,22 @@
       <div class="tabpane howto" data-pane="howto" hidden>
       <div class="rings">
         <span><i class="ring smash"></i>Green ring: smash it</span>
-        <span><i class="ring bounce"></i>Amber: bounces you, costs health</span>
+        <span><i class="ring bounce"></i>Amber: bounces you, drains your tank</span>
         <span><i class="ring wreck"></i>Red: moving ones wreck you</span>
       </div>
       <div class="keys">
         <span><kbd>←</kbd><kbd>→</kbd> steer</span>
         <span><kbd>Shift</kbd> / <kbd>Space</kbd> boost</span>
-        <span><kbd>↓</kbd> brake, hold to reverse</span>
         <span><kbd>↑</kbd> hop</span>
         <span><kbd>P</kbd> pause</span>
       </div>
       <div class="touch-note">
         <span><b>Drag</b> left or right to steer</span>
         <span><b>Double-tap and hold</b> to boost</span>
-        <span><b>Swipe down and hold</b> to brake (hold at a stop to reverse)</span>
         <span><b>Swipe up</b> to hop</span>
         <span><b>Two fingers</b> to pause</span>
       </div>
-      <p class="tricks"><b>Slides:</b> turn hard at speed and the car slides; the longer the slide, the bigger the boost when you straighten up. <b>Crazy Dash:</b> brake to a crawl, then let go. <b>Boost</b> for double points and extra fuel; while boosting at speed you <b>Power Ram</b> through amber objects for a little health. <b>Hop</b> over cars you can't smash yet. <b>Hunt your size:</b> things far smaller than you barely score. Orange ramps launch you for air points.</p>
+      <p class="tricks"><b>Slides:</b> turn hard at speed and the car slides; the longer the slide, the bigger the boost when you straighten up. <b>Tank:</b> one bar for fuel and damage. It drains as you drive and when you bump things; smashing refills it, and so do food trucks. <b>Crazy Dash:</b> boost from a standstill. <b>Boost</b> for double points and a fuller refill; while boosting at speed you <b>Power Ram</b> through amber objects for a little tank. <b>Hop</b> over cars you can't smash yet. <b>Hunt your size:</b> things far smaller than you barely score. Orange ramps launch you for air points.</p>
       <p class="credits">Engine and tyre recordings by freesound_community and olenchic (Pixabay).</p>
       <p class="ladder">Sedan → SUV at 2,000 → Truck at 15,000 → Bus at 45,000</p>
     </div>
@@ -165,6 +174,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/progress.js"></script>
+<script src="js/maps.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/models.js"></script>
 <script src="js/world.js"></script>

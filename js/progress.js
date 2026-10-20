@@ -8,8 +8,8 @@
 
 // ---------- Garage upgrades ----------
 const UPGRADES = [
-  { id: 'fuel',   name: 'Fuel tank',    desc: l => `Holds ${100 + l * 15} fuel`,                        unit: 'more fuel' },
-  { id: 'armour', name: 'Armour',       desc: l => `Bumps cost ${Math.round(100 - l * 10)}% health`,    unit: 'less damage' },
+  { id: 'fuel',   name: 'Fuel tank',    desc: l => `Tank holds ${100 + l * 15}`,                        unit: 'more fuel' },
+  { id: 'armour', name: 'Armour',       desc: l => `Bumps drain ${Math.round(100 - l * 10)}% as much tank`,    unit: 'less damage' },
   { id: 'nitro',  name: 'Nitro',        desc: l => l ? `Boost ${l * 4}% faster, burns ${l * 10}% less` : 'Standard boost',     unit: 'faster boost' },
   { id: 'spring', name: 'Springs',      desc: l => l ? `Hops ${Math.round(((1 + l * .06) ** 2 - 1) * 100)}% higher` : 'Standard hops', unit: 'higher hops' },
   { id: 'combo',  name: 'Combo timer',  desc: l => `Combos last ${(COMBO_WINDOW + l * .3).toFixed(1)}s`, unit: 'longer combos' },

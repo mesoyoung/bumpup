@@ -67,14 +67,15 @@ button:focus-visible { outline: 2px solid var(--sodium); outline-offset: 3px; }
 @keyframes blink { 50% { background: #ff3b5c; } }
 .icon-btn { pointer-events: auto; width: 40px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--glass); font-weight: 700; letter-spacing: -.05em; }
 
-.hud-vitals { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 10px; width: min(240px, 40vw); }
+.hud-vitals { bottom: calc(22px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 10px; width: min(240px, 40vw); }
 .vital { display: grid; gap: 4px; }
 .bar { height: 10px; border-radius: 5px; background: rgba(255,255,255,.1); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
 .bar span { display: block; height: 100%; transform-origin: left; transition: transform .2s; }
 .bar.hp span { background: var(--smash); }
 .bar.hp.low span { background: var(--wreck); animation: pulse .6s infinite alternate; }
-.bar.fuel span { background: var(--sodium); }
-.bar.fuel.low span { background: var(--bounce); animation: pulse .6s infinite alternate; }
+.bar.fuel span { background: var(--smash); }
+.bar.fuel.mid span { background: var(--bounce); }
+.bar.fuel.low span { background: var(--wreck); animation: pulse .5s infinite alternate; }
 @keyframes pulse { to { opacity: .45; } }
 
 .hud-speed { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); text-align: right; }
@@ -302,3 +303,44 @@ kbd { font-family: var(--body); font-size: 11px; font-weight: 700; padding: 1px 
 .fa-icon::before { content: ""; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 12px solid var(--smash); transform: translateY(-1px); }
 .fa-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--smash); text-shadow: 0 1px 4px rgba(0,0,0,.9); white-space: nowrap; }
 .food-arrow.on .fa-icon { animation: pulse .5s infinite alternate; }
+
+/* ---------------- Map button + swipe picker ---------------- */
+.map-btn { display: inline-flex; align-items: baseline; gap: 10px; padding: 8px 16px; border-radius: 12px; border: 1px solid rgba(255,179,71,.5); background: var(--glass);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.map-btn small { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
+.map-btn b { font-family: var(--display); font-size: 26px; font-style: italic; line-height: .9; }
+.mb-change { font-size: 12px; font-weight: 700; color: var(--sodium); }
+.map-picker { position: fixed; inset: 0; z-index: 6; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); background: rgba(4,6,14,.82);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding-block: calc(14px + env(safe-area-inset-top, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)); }
+.mp-headbar { display: flex; justify-content: space-between; align-items: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.mp-headbar h2 { margin: 0; font-family: var(--display); font-size: 40px; font-style: italic; line-height: .8; padding-top: 6px; }
+.mp-stage { position: relative; display: flex; align-items: center; min-height: 0; min-width: 0; }
+.map-track { position: relative; min-width: 0; display: flex; gap: 18px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; width: 100%; height: 100%; align-items: center;
+  touch-action: pan-x; overscroll-behavior-x: contain; }
+/* spacers so the first and last cards can sit in the middle */
+.map-track::before, .map-track::after { content: ""; flex: 0 0 calc(50% - min(170px, 41vw) - 18px); }
+.map-track::-webkit-scrollbar { display: none; }
+.map-card { flex: 0 0 min(340px, 82vw); scroll-snap-align: center; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; min-width: 0; border-radius: 18px; overflow: hidden; background: var(--glass);
+  border: 1px solid var(--line); transform: scale(.9); opacity: .55; transition: transform .25s, opacity .25s, border-color .25s; max-height: 100%; }
+.map-card.focus { transform: none; opacity: 1; border-color: rgba(255,179,71,.6); }
+.mc-preview { width: 100%; height: auto; aspect-ratio: 1; max-width: 100%; display: block; background: #000; max-height: 42vh; object-fit: cover; }
+.mc-info { display: grid; gap: 10px; padding: 14px 16px 16px; }
+.mc-info h3 { margin: 0; font-family: var(--display); font-size: 36px; font-style: italic; line-height: .85; }
+.mc-info p { margin: 0; font-size: 14px; color: var(--dim); min-height: 2.6em; }
+.mc-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
+.pill.d-easy { color: var(--smash); border-color: rgba(61,255,143,.45); }
+.pill.d-medium { color: var(--bounce); border-color: rgba(255,174,43,.45); }
+.pill.d-hard { color: #ff6f86; border-color: rgba(255,46,77,.45); }
+.mc-go { height: 50px; font-size: 26px; }
+.mp-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 1; width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); background: var(--glass); font-size: 26px; line-height: 1; }
+.mp-arrow:disabled { opacity: .25; cursor: default; }
+#mapPrev { left: max(12px, env(safe-area-inset-left, 0px)); } #mapNext { right: max(12px, env(safe-area-inset-right, 0px)); }
+.mp-dots { display: flex; justify-content: center; gap: 8px; padding-top: 6px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; border: 0; padding: 0; background: rgba(255,255,255,.25); }
+.dot.on { background: var(--sodium); width: 22px; border-radius: 5px; }
+@media (pointer: coarse) { .mp-arrow { display: none; } }
+@media (prefers-reduced-motion: reduce) { .map-card { transition: none; } }
+
+.pill.current { color: var(--sodium); border-color: rgba(255,179,71,.5); }

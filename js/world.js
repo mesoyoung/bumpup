@@ -4,11 +4,12 @@
 // ============================================================
 
 const World = {
-  blocks: [],        // {i,j,type:'build'|'park', x0,z0,x1,z1}
+  blocks: [],        // from makeLayout: {i,j,type, x0,z0,x1,z1, boxes:[...]}
   props: [],         // every sidewalk prop item
   batches: {},       // kind -> PropBatch
   hash: new Map(),   // spatial hash of props
   loops: [],         // pedestrian loops (rects)
+  ramps: [], foodSpots: [], parkSpots: [],
 };
 
 // ---------- instanced prop batch ----------
@@ -100,26 +101,45 @@ const DIRS = [{ dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz
 const laneOff = d => ({ x: d.dz * LANE, z: -d.dx * LANE });
 const validDir = (i, j, d) => i + d.dx >= 0 && i + d.dx <= N && j + d.dz >= 0 && j + d.dz <= N;
 
-function buildWorld(scene) {
-  // Ground + sidewalks (one dark slab) and roads on top
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(SIZE + EXT * 2 + 400, SIZE + EXT * 2 + 400).rotateX(-Math.PI / 2), lam(0x2b2e38));
+// Build the whole map into one group, so switching maps can throw it away and build another.
+function buildWorld(scene, map) {
+  World.root = new THREE.Group(); scene.add(World.root);
+  World.map = map; World.disposables = [];
+  withSeed(map.seed + 7, () => buildMap(World.root, map, makeLayout(map)));
+}
+function clearWorld(scene) {
+  if (!World.root) return;
+  scene.remove(World.root);
+  for (const d of World.disposables) d.dispose();
+  Object.assign(World, { blocks: [], props: [], batches: {}, hash: new Map(), loops: [], ramps: [], foodSpots: [], parkSpots: [], root: null });
+}
+const keep = x => { World.disposables.push(x); return x; };
+
+function buildMap(scene, map, layout) {
+  const P = map.pal;
+  // Ground + sidewalks (one slab) and roads on top
+  const ground = new THREE.Mesh(keep(new THREE.PlaneGeometry(SIZE + EXT * 2 + 400, SIZE + EXT * 2 + 400).rotateX(-Math.PI / 2)), lam(P.ground));
   ground.position.set(SIZE / 2, 0, SIZE / 2); scene.add(ground);
-  const roadMat = lam(0x15171d);
+  if (P.sea) { // water beyond the far edge
+    const sea = new THREE.Mesh(keep(new THREE.PlaneGeometry(SIZE + EXT * 2 + 400, 300).rotateX(-Math.PI / 2)), lam(P.sea, P.sea, .35));
+    sea.position.set(SIZE / 2, .015, SIZE + SW + 150.6); scene.add(sea);
+  }
+  const roadMat = lam(P.road);
   for (let i = 0; i <= N; i++) {
-    const a = new THREE.Mesh(new THREE.PlaneGeometry(RW * 2, SIZE + RW * 2).rotateX(-Math.PI / 2), roadMat);
+    const a = new THREE.Mesh(keep(new THREE.PlaneGeometry(RW * 2, SIZE + RW * 2).rotateX(-Math.PI / 2)), roadMat);
     a.position.set(i * CELL, .02, SIZE / 2); scene.add(a);
-    const b = new THREE.Mesh(new THREE.PlaneGeometry(SIZE + RW * 2, RW * 2).rotateX(-Math.PI / 2), roadMat);
+    const b = new THREE.Mesh(keep(new THREE.PlaneGeometry(SIZE + RW * 2, RW * 2).rotateX(-Math.PI / 2)), roadMat);
     b.position.set(SIZE / 2, .021, i * CELL); scene.add(b);
   }
-  // Lane dashes
-  const dashes = new THREE.InstancedMesh(GEO.plane, basic(0xd8c46a), 6000);
+  // Lane dashes + car park bay lines
+  const dashes = new THREE.InstancedMesh(GEO.plane, basic(0xd8c46a), 8000);
   dashes.frustumCulled = false;
   let dc = 0; const m = new THREE.Matrix4();
   for (let i = 0; i <= N; i++) for (let s = 0; s < N; s++) for (let t = SW + 1.5; t < CELL - SW - 1; t += 4.5) {
     m.makeScale(.22, 1, 2.2).setPosition(i * CELL, .04, s * CELL + t); dashes.setMatrixAt(dc++, m);
     m.makeScale(2.2, 1, .22).setPosition(s * CELL + t, .04, i * CELL); dashes.setMatrixAt(dc++, m);
   }
-  dashes.count = dc; scene.add(dashes);
+  scene.add(dashes);
 
   // Curbs around every block
   const curbs = new THREE.InstancedMesh(GEO.box, lam(0x6d7385), N * N * 4);
@@ -134,84 +154,101 @@ function buildWorld(scene) {
   }
   scene.add(curbs);
 
-  // Building materials
+  // Building materials (window textures), tinted per map
+  const tint = map.id === 'seaside' ? [['#ffd38a', '#ffb0d8', '#fff0c9'], '#3a2a3e'] : map.id === 'docks' ? [['#bfe6ff', '#e9f6ff', '#ffd38a'], '#1e2830'] : null;
   const wallMats = [
-    windowTexture(['#ffd38a', '#ffc46b', '#fff0c9'], '#20232e'),
-    windowTexture(['#bfe6ff', '#e9f6ff', '#8fd3ff'], '#1a2130'),
-    windowTexture(['#ffd38a', '#ff9fd6', '#a0ffe6'], '#251f2c'),
-  ].map(t => new THREE.MeshLambertMaterial({ color: 0x9aa0b5, map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: .85 }));
+    tint || [['#ffd38a', '#ffc46b', '#fff0c9'], '#20232e'],
+    [['#bfe6ff', '#e9f6ff', '#8fd3ff'], '#1a2130'],
+    [['#ffd38a', '#ff9fd6', '#a0ffe6'], '#251f2c'],
+  ].map(([lit, wall]) => { const t = keep(windowTexture(lit, wall)); return keep(new THREE.MeshLambertMaterial({ color: 0x9aa0b5, map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: .85 })); });
   const roofMat = lam(0x14161c);
+  const shedMat = lam(0x5d6873), shedRoof = lam(0x3a4148), shedLight = lam(0xfff1c9, 0xfff1c9, 1);
 
   // Neon signs + storefront bands (one instanced batch with per-instance colour)
-  const neon = new THREE.InstancedMesh(GEO.box, new THREE.MeshBasicMaterial({ color: 0xffffff }), 900);
+  const neon = new THREE.InstancedMesh(GEO.box, keep(new THREE.MeshBasicMaterial({ color: 0xffffff })), 1200);
   neon.frustumCulled = false; let nc = 0;
   const NEON = [0xff2f92, 0x2ff3ff, 0xffb347, 0x9b5cff, 0x4dff8a, 0xff4040];
   const col = new THREE.Color();
   const addNeon = (x, y, z, sx, sy, sz, hex) => {
-    if (nc >= 900) return;
+    if (nc >= 1200) return;
     m.makeScale(sx, sy, sz).setPosition(x, y, z); neon.setMatrixAt(nc, m);
     neon.setColorAt(nc, col.setHex(hex)); nc++;
   };
+  // Shipping containers: one instanced batch
+  const boxes = layout.flatMap(b => b.boxes.filter(x => x.style === 'container'));
+  const cont = new THREE.InstancedMesh(GEO.box, keep(new THREE.MeshLambertMaterial({ color: 0xffffff })), Math.max(1, boxes.length));
+  cont.frustumCulled = false; let kc = 0;
+  const CONT = [0xc0392b, 0x2f6fc0, 0xd8902a, 0x2f9a66, 0x8e44ad, 0xb8bcc4];
 
-  const mid = SIZE / 2;
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-    const x0 = i * CELL + SW, z0 = j * CELL + SW, x1 = (i + 1) * CELL - SW, z1 = (j + 1) * CELL - SW;
-    const d = Math.hypot((i + .5) * CELL - mid, (j + .5) * CELL - mid);
-    const zone = d < SIZE * .2 ? 'downtown' : d < SIZE * .37 ? 'mid' : 'outer';
-    const isPark = (zone !== 'downtown' && Math.random() < .2) || (i === 3 && j === 4);
-    const block = { i, j, zone, type: isPark ? 'park' : 'build', x0, z0, x1, z1 };
-    World.blocks.push(block);
-    World.loops.push({ x0: i * CELL + PED_PATH, z0: j * CELL + PED_PATH, x1: (i + 1) * CELL - PED_PATH, z1: (j + 1) * CELL - PED_PATH });
-
-    if (isPark) {
-      const g = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2), lam(0x1c3a27));
-      g.position.set((x0 + x1) / 2, .03, (z0 + z1) / 2); scene.add(g);
-      block.trees = [];
-      for (let k = 0; k < 6; k++) block.trees.push([rand(x0 + 4, x1 - 4), rand(z0 + 4, z1 - 4)]);
-      continue;
+  const GROUND = { park: 0x1c3a27, plaza: 0x4a4256, island: 0x433b4d, beach: 0x8f7650, carpark: 0x22242b, yard: 0x3a3e42, warehouse: 0x3a3e42, quay: 0x484e53 };
+  for (const b of layout) {
+    World.blocks.push(b);
+    World.loops.push({ x0: b.i * CELL + PED_PATH, z0: b.j * CELL + PED_PATH, x1: (b.i + 1) * CELL - PED_PATH, z1: (b.j + 1) * CELL - PED_PATH });
+    if (GROUND[b.type]) {
+      const g = new THREE.Mesh(keep(new THREE.PlaneGeometry(b.x1 - b.x0, b.z1 - b.z0).rotateX(-Math.PI / 2)), lam(GROUND[b.type]));
+      g.position.set((b.x0 + b.x1) / 2, .03, (b.z0 + b.z1) / 2); scene.add(g);
     }
-    // Split the block into 1, 2 or 4 buildings
-    const split = pick(zone === 'downtown' ? [1, 2, 4] : [2, 4, 4]);
-    const rects = [];
-    const mx = (x0 + x1) / 2 + rand(-5, 5), mz = (z0 + z1) / 2 + rand(-5, 5);
-    if (split === 1) rects.push([x0, z0, x1, z1]);
-    else if (split === 2) Math.random() < .5 ? rects.push([x0, z0, mx, z1], [mx, z0, x1, z1]) : rects.push([x0, z0, x1, mz], [x0, mz, x1, z1]);
-    else rects.push([x0, z0, mx, mz], [mx, z0, x1, mz], [x0, mz, mx, z1], [mx, mz, x1, z1]);
-
-    for (const [a, b, c, e] of rects) {
-      const w = c - a - .6, dd = e - b - .6;
-      const h = zone === 'downtown' ? rand(26, 62) : zone === 'mid' ? rand(12, 28) : rand(7, 14);
-      const geo = new THREE.BoxGeometry(w, h, dd);
+    if (b.type === 'carpark') { // painted bays
+      for (const z of [b.z0 + 7, (b.z0 + b.z1) / 2, b.z1 - 7]) for (let x = b.x0 + 2.3; x < b.x1 - 2; x += 3.4) {
+        m.makeScale(.14, 1, 4.6).setPosition(x, .05, z); dashes.setMatrixAt(dc++, m);
+      }
+    }
+    for (const s of b.spots) World.parkSpots.push(s);
+    for (const x of b.boxes) {
+      const w = x.x1 - x.x0, dd = x.z1 - x.z0, h = x.h, cx = (x.x0 + x.x1) / 2, cz = (x.z0 + x.z1) / 2;
+      if (x.style === 'container') {
+        m.makeScale(w - .2, h, dd - .1).setPosition(cx, h / 2, cz); cont.setMatrixAt(kc, m);
+        cont.setColorAt(kc, col.setHex(pick(CONT))); kc++; continue;
+      }
+      if (x.style === 'warehouse') {
+        const shed = new THREE.Mesh(GEO.box, shedMat); shed.scale.set(w - .4, h, dd - .4); shed.position.set(cx, h / 2, cz); scene.add(shed);
+        const roof = new THREE.Mesh(GEO.box, shedRoof); roof.scale.set(w, .5, dd); roof.position.set(cx, h + .25, cz); scene.add(roof);
+        const strip = new THREE.Mesh(GEO.box, shedLight); strip.scale.set(w * .7, .4, .1); strip.position.set(cx, h - 1.2, x.z0 + .1 - .2); scene.add(strip);
+        addNeon(cx, h * .45, x.z0 - .25, w * .35, 3.2, .1, 0x2b3038); // big loading door
+        continue;
+      }
+      const geo = keep(new THREE.BoxGeometry(w - .6, h, dd - .6));
       const uv = geo.attributes.uv;
       for (let f = 0; f < 6; f++) {
         if (f === 2 || f === 3) continue;
         const across = f < 2 ? dd : w;
         for (let v = 0; v < 4; v++) { const n = f * 4 + v; uv.setXY(n, uv.getX(n) * across / 32, uv.getY(n) * h / 28); }
       }
-      const wm = pick(wallMats);
+      const wm = x.style === 'low' && tint ? wallMats[0] : pick(wallMats);
       const bld = new THREE.Mesh(geo, [wm, wm, roofMat, roofMat, wm, wm]);
-      bld.position.set((a + c) / 2, h / 2, (b + e) / 2); scene.add(bld);
-      // storefront bands on the faces that touch a road
-      const shop = pick([0xffc46b, 0xff7ab8, 0x7af0ff, 0xfff3d6]);
-      if (a === x0) addNeon(a - .05, 3.4, (b + e) / 2, .12, .35, dd * .85, shop);
-      if (c === x1) addNeon(c + .05, 3.4, (b + e) / 2, .12, .35, dd * .85, shop);
-      if (b === z0) addNeon((a + c) / 2, 3.4, b - .05, w * .85, .35, .12, shop);
-      if (e === z1) addNeon((a + c) / 2, 3.4, e + .05, w * .85, .35, .12, shop);
-      // a vertical neon sign
+      bld.position.set(cx, h / 2, cz); scene.add(bld);
+      // storefront bands: on faces that touch the street, or all round for free-standing buildings
+      const shop = pick([0xffc46b, 0xff7ab8, 0x7af0ff, 0xfff3d6]), all = x.style === 'low';
+      if (all || x.x0 === b.x0) addNeon(x.x0 - .05, 3.4, cz, .12, .35, dd * .85, shop);
+      if (all || x.x1 === b.x1) addNeon(x.x1 + .05, 3.4, cz, .12, .35, dd * .85, shop);
+      if (all || x.z0 === b.z0) addNeon(cx, 3.4, x.z0 - .05, w * .85, .35, .12, shop);
+      if (all || x.z1 === b.z1) addNeon(cx, 3.4, x.z1 + .05, w * .85, .35, .12, shop);
       if (Math.random() < .55) {
         const hue = pick(NEON), sy = rand(3.5, 7), y = rand(6.5, Math.min(h - 2, 16));
         if (y > 6) {
-          if (a === x0) addNeon(a - .5, y, rand(b + 3, e - 3), .3, sy, 1.1, hue);
-          else if (b === z0) addNeon(rand(a + 3, c - 3), y, b - .5, 1.1, sy, .3, hue);
-          else if (c === x1) addNeon(c + .5, y, rand(b + 3, e - 3), .3, sy, 1.1, hue);
-          else if (e === z1) addNeon(rand(a + 3, c - 3), y, e + .5, 1.1, sy, .3, hue);
+          if (all || x.x0 === b.x0) addNeon(x.x0 - .5, y, rand(x.z0 + 3, x.z1 - 3), .3, sy, 1.1, hue);
+          else if (x.z0 === b.z0) addNeon(rand(x.x0 + 3, x.x1 - 3), y, x.z0 - .5, 1.1, sy, .3, hue);
+          else if (x.x1 === b.x1) addNeon(x.x1 + .5, y, rand(x.z0 + 3, x.z1 - 3), .3, sy, 1.1, hue);
+          else if (x.z1 === b.z1) addNeon(rand(x.x0 + 3, x.x1 - 3), y, x.z1 + .5, 1.1, sy, .3, hue);
         }
       }
-      if (h > 45) addNeon((a + c) / 2, h + .6, (b + e) / 2, .8, .8, .8, 0xff2030); // aviation light
+      if (h > 45) addNeon(cx, h + .6, cz, .8, .8, .8, 0xff2030); // aviation light
     }
   }
+  dashes.count = dc;
   neon.count = nc; if (neon.instanceColor) neon.instanceColor.needsUpdate = true;
   scene.add(neon);
+  cont.count = kc; if (cont.instanceColor) cont.instanceColor.needsUpdate = true;
+  scene.add(cont);
+
+  // Dock cranes across the water edge (scenery)
+  if (map.id === 'docks') for (let k = 0; k < 4; k++) {
+    const x = (k + .5) * SIZE / 4, z = SIZE + SW + 6, crane = new THREE.Group(), steel = lam(0xd8902a), red = basic(0xff2030);
+    for (const lx of [-4, 4]) for (const lz of [-3, 3]) { const leg = new THREE.Mesh(GEO.box, steel); leg.scale.set(.8, 26, .8); leg.position.set(lx, 13, lz); crane.add(leg); }
+    const boom = new THREE.Mesh(GEO.box, steel); boom.scale.set(1.4, 1.4, 44); boom.position.set(0, 27, -6); crane.add(boom);
+    const tip = new THREE.Mesh(GEO.box, red); tip.scale.set(.8, .8, .8); tip.position.set(0, 28.4, -27); crane.add(tip);
+    crane.position.set(x, 0, z); scene.add(crane);
+  }
 
   // City edge: glowing barriers + distant silhouettes
   const barrierMat = lam(0x5a606e), stripe = basic(0xff7b00);
@@ -221,13 +258,15 @@ function buildWorld(scene) {
     const s = new THREE.Mesh(GEO.box, stripe); s.scale.set(sx + .02, .12, sz + .02); s.position.set(x, .9, z); scene.add(s);
   });
   const sil = new THREE.InstancedMesh(GEO.box, lam(0x10131f), 120);
-  let sc = 0;
+  let sc = 0; const mid = SIZE / 2;
   for (let k = 0; k < 120; k++) {
     const ang = k / 120 * Math.PI * 2, r = SIZE * .72 + rand(60, 200);
+    const sz = mid + Math.sin(ang) * r;
+    if (P.sea && sz > SIZE + SW) continue;  // open water on the sea side
     const h = rand(30, 140), w = rand(18, 40);
-    m.makeScale(w, h, w).setPosition(mid + Math.cos(ang) * r, h / 2, mid + Math.sin(ang) * r); sil.setMatrixAt(sc++, m);
+    m.makeScale(w, h, w).setPosition(mid + Math.cos(ang) * r, h / 2, sz); sil.setMatrixAt(sc++, m);
   }
-  sil.frustumCulled = false; scene.add(sil);
+  sil.count = sc; sil.frustumCulled = false; scene.add(sil);
 
   buildProps(scene);
   buildRamps(scene);
@@ -238,12 +277,11 @@ function buildProps(scene) {
   const B = World.batches;
   const sides = ((N + 1) * 2 - 2) * N * 2;
   B.lamp = new PropBatch(scene, 'lamp', sides * 3);
-  B.bin = new PropBatch(scene, 'bin', sides);
-  B.cone = new PropBatch(scene, 'cone', 260);
-  B.hydrant = new PropBatch(scene, 'hydrant', sides);
+  B.bin = new PropBatch(scene, 'bin', sides + 400);
+  B.cone = new PropBatch(scene, 'cone', 600);
+  B.hydrant = new PropBatch(scene, 'hydrant', sides + 200);
   B.busstop = new PropBatch(scene, 'busstop', 60);
-  B.tree = new PropBatch(scene, 'tree', sides + 200);
-  World.foodSpots = [];
+  B.tree = new PropBatch(scene, 'tree', sides + 400);
   // minTier: the tier index at which this prop appears (hazards show up once you can smash them)
   const put = (kind, x, z, rot, minTier) => { if (B[kind].count >= B[kind].max) return null; const it = B[kind].add(x, z, rot); it.minTier = minTier || 0; World.props.push(it); hashAdd(it); return it; };
 
@@ -274,8 +312,11 @@ function buildProps(scene) {
       put('cone', x, z, 0);
     }
   }
-  // Park trees
-  for (const b of World.blocks) if (b.trees) for (const [x, z] of b.trees) put('tree', x, z, rand(0, 6));
+  // Trees and loose props inside the blocks (parks, plazas, beach, yards)
+  for (const b of World.blocks) {
+    for (const [x, z] of b.trees) put('tree', x, z, rand(0, 6), b.type === 'park' ? 0 : 1);
+    for (const s of b.scatter) put(s.kind, s.x, s.z, rand(0, 6));
+  }
 }
 
 // ---------- building collision ----------
@@ -285,20 +326,22 @@ function pushOutOfBuildings(x, z, r) {
   let hit = null;
   for (let i = bi - 1; i <= bi + 1; i++) for (let j = bj - 1; j <= bj + 1; j++) {
     if (i < 0 || j < 0 || i >= N || j >= N) continue;
-    const b = World.blocks[i * N + j];
-    if (b.type !== 'build') continue;
-    const cx = clamp(x, b.x0, b.x1), cz = clamp(z, b.z0, b.z1);
-    let dx = x - cx, dz = z - cz, d = Math.hypot(dx, dz);
-    if (d < r) {
-      if (d < 1e-4) { // centre inside: push out the shortest way
-        const opts = [[b.x0 - x, 0], [b.x1 - x, 0], [0, b.z0 - z], [0, b.z1 - z]];
-        opts.sort((p, q) => Math.abs(p[0] + p[1]) - Math.abs(q[0] + q[1]));
-        dx = Math.sign(opts[0][0]); dz = Math.sign(opts[0][1]); d = 0;
-        x += opts[0][0] + dx * r; z += opts[0][1] + dz * r;
-      } else {
-        const push = r - d; dx /= d; dz /= d; x += dx * push; z += dz * push;
+    const blk = World.blocks[i * N + j];
+    if (!blk) continue;
+    for (const b of blk.boxes) {
+      const cx = clamp(x, b.x0, b.x1), cz = clamp(z, b.z0, b.z1);
+      let dx = x - cx, dz = z - cz, d = Math.hypot(dx, dz);
+      if (d < r) {
+        if (d < 1e-4) { // centre inside: push out the shortest way
+          const opts = [[b.x0 - x, 0], [b.x1 - x, 0], [0, b.z0 - z], [0, b.z1 - z]];
+          opts.sort((p, q) => Math.abs(p[0] + p[1]) - Math.abs(q[0] + q[1]));
+          dx = Math.sign(opts[0][0]); dz = Math.sign(opts[0][1]); d = 0;
+          x += opts[0][0] + dx * r; z += opts[0][1] + dz * r;
+        } else {
+          const push = r - d; dx /= d; dz /= d; x += dx * push; z += dz * push;
+        }
+        hit = { x, z, nx: dx, nz: dz };
       }
-      hit = { x, z, nx: dx, nz: dz };
     }
   }
   // City edge
@@ -336,7 +379,6 @@ function randomLaneSpot(px, pz, minDist) {
 }
 
 // ---------- jump ramps on the road centre lines ----------
-World.ramps = [];
 function buildRamps(scene) {
   const deck = lam(0x30343f), edge = basic(0xff7b00), arrow = basic(0xffd23a);
   const used = new Set();
