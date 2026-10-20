@@ -77,7 +77,7 @@ const TRAFFIC_BY_SIZE = { 2: ['sedan'], 3: ['suv'], 4: ['truck'], 5: ['bus', 'bu
 const TRAFFIC_SPEED = { sedan: 14, suv: 13, truck: 11, bus: 9, armor: 11, tank: 7 };
 const TRAFFIC_COUNT = 42;
 const PED_COUNT = 110;
-const PED_NOTICE = 10;        // how close you get before a pedestrian notices you (m)
+const PED_NOTICE = 16;        // how close you get before a pedestrian notices you (m)
 const PED_FREEZE = .4;        // seconds they freeze in panic before running
 const PED_RUN = 3.6;          // how fast they scramble away (m/s)
 const PED_HIT = .65;          // pedestrian hit box half-size (m): generous so glancing hits count
@@ -101,7 +101,7 @@ const BOOST_FUEL = 1.5;       // smashes refuel this much more while boosting
 const RAM_AT = 1;             // while boosting above this share of cruise speed you Power Ram...
 const RAM_DAMAGE = 6;         // ...through amber objects (one size up), for a little tank
 const Ram = { on: false };
-const Lighting = { day: false };
+const Lighting = { day: false, bright: false };   // bright = light ground (day, or the salt flats): rings switch to solid colours
 
 // ---- Tiny prey (2+ sizes below you) ----
 const TINY_PTS = .25;         // points share; no fuel and no combo either

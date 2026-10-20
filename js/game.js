@@ -95,6 +95,7 @@ const Game = {
   function applyPalette(map) {
     const day = save.time === 'day', p = day ? Object.assign({}, map.pal, map.day) : map.pal;
     Lighting.day = day; document.body.classList.toggle('day', day);
+    Lighting.bright = day || !!map.arena; restyleRings(); setThreatAll(Player.level || 1);
     scene.background.setHex(p.sky); scene.fog.color.setHex(p.fog); scene.fog.near = p.fogNear; scene.fog.far = p.fogFar;
     hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGround); hemi.intensity = day ? 1.05 : .75;
     moon.color.setHex(day ? 0xfff1d6 : 0x9db4ff); moon.intensity = day ? 1 : .55; moon.position.set(day ? .6 : -1, 2, day ? .9 : .6);

@@ -60,8 +60,8 @@ class PropBatch {
   setThreat(level) {
     const t = threatOf(KINDS[this.kind].size, level);
     this.threat = t;
-    this.ringMat.color.setHex(THREAT[t]);
-    this.ringMat.opacity = t === 'smash' ? .75 : t === 'bounce' ? .65 : .6;
+    styleRing(this.ringMat, t);
+    this.ringMat.opacity = Lighting.bright ? .9 : t === 'smash' ? .75 : t === 'bounce' ? .65 : .6;
   }
 }
 

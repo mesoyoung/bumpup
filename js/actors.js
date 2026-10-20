@@ -8,6 +8,10 @@ const RING_MATS = {};
 for (const k of Object.keys(THREAT)) {
   RING_MATS[k] = new THREE.MeshBasicMaterial({ color: THREAT[k], transparent: true, opacity: k === 'smash' || k === 'gold' ? .75 : .5, blending: THREE.AdditiveBlending, depthWrite: false });
 }
+function restyleRings() {
+  for (const k of Object.keys(RING_MATS)) { styleRing(RING_MATS[k], k); RING_MATS[k].opacity = Lighting.bright ? .9 : k === 'smash' || k === 'gold' ? .75 : .5; }
+  if (Peds.ring) { const m = Peds.ring.material; m.blending = Lighting.bright ? THREE.NormalBlending : THREE.AdditiveBlending; m.opacity = Lighting.bright ? .9 : .75; m.needsUpdate = true; }
+}
 const GOLD_MAT = new THREE.MeshLambertMaterial({ color: 0xffd23a, emissive: 0xb07800, emissiveIntensity: .9 });
 
 // ---------------- Pedestrians ----------------
@@ -66,7 +70,7 @@ function spawnPed(p, px, pz, minDist) {
 }
 function setPedThreat(level) {
   const t = threatOf(KINDS.ped.size, level), c = new THREE.Color();
-  for (const p of Peds.list) Peds.ring.setColorAt(p.idx, c.setHex(p.golden ? THREAT.gold : THREAT[t]));
+  for (const p of Peds.list) Peds.ring.setColorAt(p.idx, c.setHex(threatColor(p.golden ? 'gold' : t)));
   if (Peds.ring.instanceColor) Peds.ring.instanceColor.needsUpdate = true;
 }
 function updatePeds(dt, player, now) {
@@ -109,7 +113,7 @@ function updatePeds(dt, player, now) {
       if (d < .3) p.state = 'walk';
       else { p.x += dx / d * 2.4 * dt; p.z += dz / d * 2.4 * dt; p.h = Math.atan2(dx, dz); p.phase += dt * 10; }
     }
-    const bob = Math.abs(Math.sin(p.phase)) * .08;
+    const bob = Math.abs(Math.sin(p.phase)) * (p.state === 'startle' ? .35 : .08);   // a panicked little hop when they spot you
     base.makeRotationY(p.h).setPosition(p.x, bob, p.z);
     Peds.legs.setMatrixAt(p.idx, m.multiplyMatrices(base, Peds.partM[0]));
     Peds.torso.setMatrixAt(p.idx, m.multiplyMatrices(base, Peds.partM[1]));

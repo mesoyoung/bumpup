@@ -23,7 +23,7 @@ const GEO = {
   ico: new THREE.IcosahedronGeometry(1, 0),
   sphere: new THREE.SphereGeometry(.5, 8, 6),
   octa: new THREE.OctahedronGeometry(1, 0),
-  ring: new THREE.RingGeometry(.82, 1, 40).rotateX(-Math.PI / 2),
+  ring: new THREE.RingGeometry(.7, 1, 40).rotateX(-Math.PI / 2),
   disc: new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2),
   plane: new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
 };
@@ -273,6 +273,15 @@ const GLOW_TEX = radialTexture('rgba(255,255,255,1)', 'rgba(255,255,255,0)');
 
 // Threat colours for the "what can I smash?" rings
 const THREAT = { smash: 0x3dff8f, bounce: 0xffae2b, wreck: 0xff2e4d, gold: 0xffd23a };
+// On light ground (daytime, salt flats) glowing additive rings wash out to white,
+// so rings switch to solid, deeper colours there.
+const THREAT_BRIGHT = { smash: 0x0aa84a, bounce: 0xe07a00, wreck: 0xd0102c, gold: 0xc99400 };
+const threatColor = t => (Lighting.bright ? THREAT_BRIGHT : THREAT)[t];
+function styleRing(mat, t) {
+  mat.color.setHex(threatColor(t));
+  const blend = Lighting.bright ? THREE.NormalBlending : THREE.AdditiveBlending;
+  if (mat.blending !== blend) { mat.blending = blend; mat.needsUpdate = true; }
+}
 function threatOf(size, level) {
   if (size <= level) return 'smash';
   if (size === level + 1) return 'bounce'; // boosting rams through these (see Ram in config.js)
