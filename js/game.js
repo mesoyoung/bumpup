@@ -466,8 +466,8 @@ const Game = {
         emit(Player.x - Player.fx * Player.half * .7, .3, Player.z - Player.fz * Player.half * .7, 1, [0x555a66, 0x777c88], { speed: 1, up: 1.5, size: .5, life: .7, grav: -1 });
       if (Player.boosting && Math.random() < .8)
         emit(Player.x - Player.fx * Player.half, .6, Player.z - Player.fz * Player.half, 1, [0x6ad5ff, 0xffffff, paintColor()], { speed: 1, up: .5, size: .2, life: .3, grav: 0 });
-      UI.hud(G, Player); UI.minimap(G, Player);
-    } else { Sound.engine(0, 0, false, false); Sound.screech(0); $('speedlines').style.opacity = 0; }
+      UI.hud(G, Player); UI.minimap(G, Player); UI.foodArrow(G, Player);
+    } else { Sound.engine(0, 0, false, false); Sound.screech(0); $('speedlines').style.opacity = 0; $('foodArrow').classList.remove('on'); }
     UI.updateFloats(dt, camera);
     renderer.render(scene, camera);
   }

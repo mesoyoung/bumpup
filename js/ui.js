@@ -61,8 +61,14 @@ const UI = {
       c.fillStyle = b.type === 'park' ? '#173322' : '#232838';
       c.fillRect(X(b.x0), Y(b.z0), (b.x1 - b.x0) * sc, (b.z1 - b.z0) * sc);
     }
+    // food trucks: a green cross, pinned to the rim with a pulse when it's off the map
     for (const f of G.food) if (f.alive) {
-      c.fillStyle = '#3dff8f'; c.fillRect(X(f.x) - 4, Y(f.z) - 1.5, 8, 3); c.fillRect(X(f.x) - 1.5, Y(f.z) - 4, 3, 8);
+      let mx = X(f.x), my = Y(f.z);
+      const ox = mx - W / 2, oy = my - W / 2, d = Math.hypot(ox, oy), rim = W / 2 - 9;
+      const off = d > rim;
+      if (off) { mx = W / 2 + ox / d * rim; my = W / 2 + oy / d * rim; }
+      if (off) { c.strokeStyle = 'rgba(61,255,143,' + (.4 + .4 * Math.abs(Math.sin(G.time * 4))) + ')'; c.lineWidth = 2; c.beginPath(); c.arc(mx, my, 7, 0, 7); c.stroke(); }
+      c.fillStyle = '#3dff8f'; c.fillRect(mx - 4, my - 1.5, 8, 3); c.fillRect(mx - 1.5, my - 4, 3, 8);
     }
     for (const car of G.traffic) if (car.alive) {
       c.fillStyle = car.golden ? '#ffd23a' : '#' + THREAT[threatOf(car.size, P.level)].toString(16).padStart(6, '0');
@@ -72,6 +78,24 @@ const UI = {
     c.translate(W / 2, W / 2); c.rotate(-P.h + Math.PI);
     c.fillStyle = '#fff'; c.beginPath(); c.moveTo(0, -7); c.lineTo(5, 6); c.lineTo(0, 3); c.lineTo(-5, 6); c.closePath(); c.fill();
     c.restore();
+  },
+
+  // ---------- arrow to the nearest food truck when you're low on fuel or health ----------
+  foodArrow(G, P) {
+    const el = $('foodArrow');
+    const need = P.alive && (P.fuel / P.fuelMax < .35 || P.health <= 40);
+    let best = null, bd = 1e9;
+    if (need) for (const f of G.food) if (f.alive) { const d = Math.hypot(f.x - P.x, f.z - P.z); if (d < bd) { bd = d; best = f; } }
+    if (!best || bd < 35) { el.classList.remove('on'); return; }
+    const dx = best.x - P.x, dz = best.z - P.z;
+    const lx = dx * -P.fz + dz * P.fx, ly = dx * P.fx + dz * P.fz;   // right / forward relative to the car
+    const a = Math.atan2(lx, ly), W = innerWidth, H = innerHeight;
+    // keep clear of the HUD: below the score/upgrade bar/minimap, above the gauges
+    const y0 = W < 641 ? 230 : 140, y1 = H - 200, cy = (y0 + y1) / 2, ry = (y1 - y0) / 2, rx = W / 2 - 60;
+    el.style.transform = `translate(${W / 2 + Math.sin(a) * rx}px, ${cy - Math.cos(a) * ry}px) translate(-50%, -50%)`;
+    $('foodArrowIcon').style.transform = `rotate(${a}rad)`;
+    $('foodArrowDist').textContent = Math.round(bd) + ' m';
+    el.classList.add('on');
   },
 
   // ---------- floating "+50" at the impact point ----------
