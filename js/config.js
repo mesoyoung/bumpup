@@ -77,7 +77,7 @@ const TRAFFIC_BY_SIZE = { 2: ['sedan'], 3: ['suv'], 4: ['truck'], 5: ['bus', 'bu
 const TRAFFIC_SPEED = { sedan: 14, suv: 13, truck: 11, bus: 9, armor: 11, tank: 7 };
 const TRAFFIC_COUNT = 42;
 const PED_COUNT = 110;
-const FOOD_TRUCKS = 4;
+const FOOD_GRID = 3;           // food trucks: one per zone of a 3 x 3 grid (9 in all), evenly spread
 const GOLDEN_CHANCE = 0.04;   // golden targets are worth 5x
 
 // ---- Survival ----
@@ -97,6 +97,7 @@ const BOOST_FUEL = 1.5;       // smashes refuel this much more while boosting
 const RAM_AT = 1;             // while boosting above this share of cruise speed you Power Ram...
 const RAM_DAMAGE = 6;         // ...through amber objects (one size up), for a little tank
 const Ram = { on: false };
+const Lighting = { day: false };
 
 // ---- Tiny prey (2+ sizes below you) ----
 const TINY_PTS = .25;         // points share; no fuel and no combo either

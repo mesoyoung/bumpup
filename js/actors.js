@@ -263,15 +263,15 @@ class FoodTruck {
     scene.add(this.mesh);
     this.hl = 2.8; this.hw = 1.15; this.alive = true; this.respawnAt = 0;
   }
-  placeRandom(px, pz, taken) {
-    const spots = World.foodSpots.filter(s => Math.hypot(s.x - px, s.z - pz) > 70 && !(taken || []).includes(s));
-    const s = pick(spots.length ? spots : World.foodSpots);
-    this.spot = s; this.x = s.x; this.z = s.z; this.rot = s.rot;
-    this.mesh.position.set(s.x, 0, s.z); this.mesh.rotation.y = s.rot;
+  // each truck owns one bay and always comes back to it
+  place(spot) {
+    this.spot = spot; this.x = spot.x; this.z = spot.z; this.rot = spot.rot;
+    this.mesh.position.set(spot.x, 0, spot.z); this.mesh.rotation.y = spot.rot;
     this.mesh.visible = true; this.alive = true;
   }
-  update(dt, now, px, pz, taken) {
-    if (!this.alive) { if (now > this.respawnAt) this.placeRandom(px, pz, taken); return; }
+  update(dt, now, px, pz) {
+    // after being used it reappears in the same bay, once you've driven away from it
+    if (!this.alive) { if (now > this.respawnAt && Math.hypot(this.spot.x - px, this.spot.z - pz) > 40) this.place(this.spot); return; }
     this.icon.rotation.y += dt * 2; this.icon.position.y = 5 + Math.sin(now * 3) * .3;
   }
 }

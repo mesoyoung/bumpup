@@ -121,7 +121,8 @@ function buildMap(scene, map, layout) {
   const ground = new THREE.Mesh(keep(new THREE.PlaneGeometry(SIZE + EXT * 2 + 400, SIZE + EXT * 2 + 400).rotateX(-Math.PI / 2)), lam(P.ground));
   ground.position.set(SIZE / 2, 0, SIZE / 2); scene.add(ground);
   if (P.sea) { // water beyond the far edge
-    const sea = new THREE.Mesh(keep(new THREE.PlaneGeometry(SIZE + EXT * 2 + 400, 300).rotateX(-Math.PI / 2)), lam(P.sea, P.sea, .35));
+    const sea = new THREE.Mesh(keep(new THREE.PlaneGeometry(SIZE + EXT * 2 + 400, 300).rotateX(-Math.PI / 2)), keep(new THREE.MeshLambertMaterial({ color: P.sea, emissive: P.sea, emissiveIntensity: .35 })));
+    World.sea = sea;
     sea.position.set(SIZE / 2, .015, SIZE + SW + 150.6); scene.add(sea);
   }
   const roadMat = lam(P.road);
@@ -161,6 +162,7 @@ function buildMap(scene, map, layout) {
     [['#bfe6ff', '#e9f6ff', '#8fd3ff'], '#1a2130'],
     [['#ffd38a', '#ff9fd6', '#a0ffe6'], '#251f2c'],
   ].map(([lit, wall]) => { const t = keep(windowTexture(lit, wall)); return keep(new THREE.MeshLambertMaterial({ color: 0x9aa0b5, map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: .85 })); });
+  World.wallMats = wallMats;
   const roofMat = lam(0x14161c);
   const shedMat = lam(0x5d6873), shedRoof = lam(0x3a4148), shedLight = lam(0xfff1c9, 0xfff1c9, 1);
 
@@ -285,6 +287,22 @@ function buildProps(scene) {
   // minTier: the tier index at which this prop appears (hazards show up once you can smash them)
   const put = (kind, x, z, rot, minTier) => { if (B[kind].count >= B[kind].max) return null; const it = B[kind].add(x, z, rot); it.minTier = minTier || 0; World.props.push(it); hashAdd(it); return it; };
 
+  // Food truck bays: the city is split into an even FOOD_GRID x FOOD_GRID grid of zones, and each
+  // zone gets one bay on the road side closest to its centre, so trucks are spread out evenly.
+  const bays = new Map();
+  for (let a = 0; a < FOOD_GRID; a++) for (let b = 0; b < FOOD_GRID; b++) {
+    const tx = (a + .5) / FOOD_GRID * SIZE, tz = (b + .5) / FOOD_GRID * SIZE;
+    let best = null, bd = 1e9;
+    for (let line = 0; line <= N; line++) for (let s = 0; s < N; s++) for (const side of [-1, 1]) for (const axis of ['x', 'z']) {
+      if ((line === 0 && side === -1) || (line === N && side === 1)) continue;
+      const x = axis === 'x' ? s * CELL + CELL / 2 : line * CELL + side * (RW + 1.3);
+      const z = axis === 'x' ? line * CELL + side * (RW + 1.3) : s * CELL + CELL / 2;
+      if (Math.hypot(x - START.x, z - START.z) < 40) continue;
+      const d = Math.hypot(x - tx, z - tz);
+      if (d < bd) { bd = d; best = `${line},${s},${side},${axis}`; }
+    }
+    bays.set(best, a * FOOD_GRID + b);
+  }
   let stops = 0;
   // Each road segment has two sides. side = +1/-1 relative to the road centre line.
   for (let line = 0; line <= N; line++) for (let s = 0; s < N; s++) for (const side of [-1, 1]) for (const axis of ['x', 'z']) {
@@ -294,9 +312,9 @@ function buildProps(scene) {
     // lamp arm points toward the road
     const lampRot = axis === 'x' ? (side > 0 ? Math.PI : 0) : (side > 0 ? -Math.PI / 2 : Math.PI / 2);
     // Some sides keep a parking bay free in the middle for a food truck
-    const bay = Math.random() < .12;
+    const bay = bays.has(`${line},${s},${side},${axis}`);
     for (const f of bay ? [.25, .75] : [.25, .5, .75]) { const [x, z] = at(CELL * f, RW + .8); put('lamp', x, z, lampRot, f === .75 ? 0 : 1); }
-    if (bay) { const [x, z] = at(CELL * .5, RW + 1.3); World.foodSpots.push({ x, z, rot: axis === 'x' ? Math.PI / 2 : 0 }); continue; }
+    if (bay) { const [x, z] = at(CELL * .5, RW + 1.3); World.foodSpots.push({ x, z, rot: axis === 'x' ? Math.PI / 2 : 0, zone: bays.get(`${line},${s},${side},${axis}`) }); continue; }
     if (stops < 50 && Math.random() < .14) { const [x, z] = at(CELL * .375, SW - 1.4); put('busstop', x, z, lampRot, 1); stops++; }
     else if (Math.random() < .75) { const [x, z] = at(CELL * rand(.35, .4), SW - .8); put('bin', x, z, 0); }
     if (Math.random() < .4) { const [x, z] = at(CELL * .62, RW + .9); put('hydrant', x, z, 0); }

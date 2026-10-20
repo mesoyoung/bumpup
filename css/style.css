@@ -344,3 +344,12 @@ kbd { font-family: var(--body); font-size: 11px; font-weight: 700; padding: 1px 
 @media (prefers-reduced-motion: reduce) { .map-card { transition: none; } }
 
 .pill.current { color: var(--sodium); border-color: rgba(255,179,71,.5); }
+
+.map-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; justify-content: center; }
+.time-btn { padding: 8px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  font-weight: 700; font-size: 14px; letter-spacing: .04em; white-space: nowrap; }
+.time-btn:hover { border-color: var(--sodium); }
+/* keep HUD text readable against a bright daytime sky */
+#hud .lbl, #hud .pip, #hud .up-label, #hud .unit, #hud .tag { text-shadow: 0 1px 3px rgba(0,0,0,.75); }
+body.day #hud .pip, body.day #hud .up-label, body.day #hud .lbl { color: #e6eaf8; }
+body.day #minimap { box-shadow: 0 0 0 2px rgba(255,255,255,.35), 0 6px 24px rgba(0,0,0,.35); }

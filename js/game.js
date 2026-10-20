@@ -18,7 +18,7 @@ const Game = {
   const camera = new THREE.PerspectiveCamera(62, 1, .5, 1000);
   const hemi = new THREE.HemisphereLight(0x7084c8, 0x20121c, .75); scene.add(hemi);
   const moon = new THREE.DirectionalLight(0x9db4ff, .55); moon.position.set(-1, 2, .6); scene.add(moon);
-  scene.add(new THREE.AmbientLight(0xffb070, .12));
+  const ambient = new THREE.AmbientLight(0xffb070, .12); scene.add(ambient);
 
   function resize() {
     const w = innerWidth, h = innerHeight;
@@ -35,7 +35,7 @@ const Game = {
   const G = Game.G;
   const save = {
     best: store.get('best', 0), coins: store.get('coins', 0),
-    paint: store.get('paint', 'blue'), owned: store.get('owned', ['blue']), map: store.get('map', 'seaside'),
+    paint: store.get('paint', 'blue'), owned: store.get('owned', ['blue']), map: store.get('map', 'seaside'), time: store.get('time', 'night'),
   };
   const paintColor = () => (PAINTS.find(p => p.id === save.paint) || PAINTS[0]).color;
   const emitters = [];
@@ -74,8 +74,13 @@ const Game = {
     Debris.list = []; emitters.length = 0;
     for (let i = 0; i < TRAFFIC_COUNT; i++) spawnTraffic(35);
     spawnParked();
-    if (!G.food.length) for (let i = 0; i < FOOD_TRUCKS; i++) G.food.push(new FoodTruck(scene));
-    const taken = []; for (const f of G.food) { f.placeRandom(Player.x, Player.z, taken); taken.push(f.spot); }
+    placeFoodTrucks();
+  }
+  // One food truck per bay (one bay per zone of the city grid)
+  function placeFoodTrucks() {
+    while (G.food.length < World.foodSpots.length) G.food.push(new FoodTruck(scene));
+    while (G.food.length > World.foodSpots.length) { const f = G.food.pop(); scene.remove(f.mesh); }
+    G.food.forEach((f, i) => f.place(World.foodSpots[i]));
   }
   // Parked cars in car parks: smashable, they don't drive and aren't replaced once wrecked
   function spawnParked() {
@@ -86,10 +91,18 @@ const Game = {
     }
   }
   // ---------- maps ----------
+  // Day or night: sky, fog, sun/moon and how much the windows and street lights glow. No rebuild needed.
   function applyPalette(map) {
-    const p = map.pal;
+    const day = save.time === 'day', p = day ? Object.assign({}, map.pal, map.day) : map.pal;
+    Lighting.day = day; document.body.classList.toggle('day', day);
     scene.background.setHex(p.sky); scene.fog.color.setHex(p.fog); scene.fog.near = p.fogNear; scene.fog.far = p.fogFar;
-    hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGround);
+    hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGround); hemi.intensity = day ? 1.05 : .75;
+    moon.color.setHex(day ? 0xfff1d6 : 0x9db4ff); moon.intensity = day ? 1 : .55; moon.position.set(day ? .6 : -1, 2, day ? .9 : .6);
+    ambient.color.setHex(day ? 0xffffff : 0xffb070); ambient.intensity = day ? .22 : .12;
+    for (const m of World.wallMats || []) m.emissiveIntensity = day ? .1 : .85;
+    if (World.sea) { World.sea.material.color.setHex(p.sea); World.sea.material.emissive.setHex(p.sea); World.sea.material.emissiveIntensity = day ? .15 : .35; }
+    if (World.batches.lamp && World.batches.lamp.glow) World.batches.lamp.glow.visible = !day;
+    $('timeBtn').textContent = day ? '☀ Day' : '☾ Night';
   }
   function loadMap(id) {
     const map = mapById(id);
@@ -103,7 +116,7 @@ const Game = {
     for (let i = 0; i < TRAFFIC_COUNT; i++) spawnTraffic(0);
     spawnParked();
     for (const p of Peds.list) spawnPed(p, START.x, START.z, 20);
-    const taken = []; for (const f of G.food) { f.placeRandom(START.x, START.z, taken); taken.push(f.spot); }
+    placeFoodTrucks();
     setThreatAll(1); applyPropTier(0);
     save.map = map.id; store.set('map', map.id);
     UI.mapLabel(map);
@@ -461,7 +474,7 @@ const Game = {
     G.traffic = G.traffic.filter(c => c.alive);
     for (const c of G.traffic) c.update(dt, G.traffic, who);
     for (const p of G.police) p.update(dt, G.traffic, who, t);
-    for (const f of G.food) f.update(dt, t, who.x, who.z, G.food.filter(o => o.alive).map(o => o.spot));
+    for (const f of G.food) f.update(dt, t, who.x, who.z);
     updatePeds(dt, who, t);
     updateDebris(dt);
     for (let i = emitters.length - 1; i >= 0; i--) {
@@ -509,6 +522,10 @@ const Game = {
     addCoins(reward); Sound.pickup(); UI.missionPop(Missions.label(m), reward);
   };
   Missions.onSetComplete = (level, bonus) => addCoins(bonus);
+  $('timeBtn').addEventListener('click', () => {
+    save.time = save.time === 'day' ? 'night' : 'day'; store.set('time', save.time);
+    applyPalette(World.map);
+  });
   $('mapBtn').addEventListener('click', () => UI.openMaps(save.map, id => {
     // picking a map rebuilds the city, then drives straight off from the new start
     if (id !== save.map) loadMap(id);
@@ -543,7 +560,7 @@ const Game = {
 
   // attract mode: city traffic running behind the title screen
   Player.x = START.x; Player.z = START.z; Player.level = 1;
-  G.food = []; for (let i = 0; i < FOOD_TRUCKS; i++) G.food.push(new FoodTruck(scene));
+  G.food = [];
   loadMap(save.map);
   toTitle();
   requestAnimationFrame(frame);

@@ -297,7 +297,7 @@ const Player = {
       this.glow.material.opacity = .75 / (1 + this.y * .4);
       this.glow.material.color.setHex(Ram.on ? 0xffd23a : this.paint);
       this.beam.position.set(this.x + this.fx * (this.half + 11), .08, this.z + this.fz * (this.half + 11)); this.beam.rotation.y = this.h;
-      this.beam.visible = this.y < 1;
+      this.beam.visible = this.y < 1 && !Lighting.day;   // headlight pool only shows at night
     }
   },
 };
