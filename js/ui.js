@@ -188,7 +188,7 @@ const UI = {
       track.innerHTML = MAPS.map((m, i) => `<article class="map-card" data-i="${i}" data-id="${m.id}">
         <canvas width="300" height="300" class="mc-preview" aria-label="Top-down view of ${m.name}"></canvas>
         <div class="mc-info"><h3>${m.name}</h3><p>${m.blurb}</p>
-          <div class="mc-pills"><span class="pill d-${m.difficulty.toLowerCase()}">${m.difficulty}</span><span class="pill">Open space ${'●'.repeat(m.open)}${'○'.repeat(3 - m.open)}</span></div>
+          <div class="mc-pills"><span class="pill d-${m.difficulty.toLowerCase()}">${m.difficulty}</span><span class="pill coin">Coins ×${m.coins}</span><span class="pill">Open space ${'●'.repeat(m.open)}${'○'.repeat(3 - m.open)}</span></div>
           <button class="btn primary mc-go" data-id="${m.id}">Drive here</button></div></article>`).join('');
       track.querySelectorAll('.map-card').forEach((card, i) => drawMapPreview(card.querySelector('canvas'), MAPS[i]));
       $('mapDots').innerHTML = MAPS.map((m, i) => `<button class="dot" data-i="${i}" aria-label="${m.name}"></button>`).join('');

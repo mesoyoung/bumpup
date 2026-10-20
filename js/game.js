@@ -159,7 +159,7 @@ const Game = {
   }
   function gameOver() {
     Game.state = 'over';
-    const earned = Math.floor(G.score / COINS_PER);
+    const earned = Math.floor(G.score / COINS_PER * (mapById(save.map).coins || 1));
     save.coins += earned; store.set('coins', save.coins);
     const missionCoins = Missions.completedThisRun.reduce((s, m) => s + m.reward, 0);
     const setDone = Missions.settle();
