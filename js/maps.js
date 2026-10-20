@@ -10,25 +10,25 @@ const MAPS = [   // ordered easiest first
     id: 'flats', name: 'Salt Flats', blurb: 'Wide-open desert with no roads and no walls. Chase anything, anywhere.',
     seed: 4409, open: 3, difficulty: 'Easiest', arena: true,
     pal: { sky: 0x0b0d1c, fog: 0x141a2c, fogNear: 70, fogFar: 300, ground: 0xb7ad98, road: 0x8f8775, hemiSky: 0x7084c8, hemiGround: 0x3a3226, sea: null },
-    day: { sky: 0x86b4d4, fog: 0xa9bccb, fogNear: 110, fogFar: 420, hemiSky: 0xdfe8f2, hemiGround: 0x6e604a, sea: null, ground: 0x7a7262 },
+    day: { sky: 0x9fd3f5, fog: 0xd9e6ee, fogNear: 110, fogFar: 420, hemiSky: 0xffffff, hemiGround: 0xa89470, sea: null },
   },
   {
     id: 'seaside', name: 'Seaside Strip', blurb: 'Wide plazas, car parks and a beach. Room to roam and chase.',
     seed: 2207, open: 3, difficulty: 'Easy',
     pal: { sky: 0x1b1030, fog: 0x2a1838, fogNear: 60, fogFar: 270, ground: 0x3a3442, road: 0x1b1a22, hemiSky: 0xb08ad0, hemiGround: 0x2a1520, sea: 0x14204a },
-    day: { sky: 0x6aa6cc, fog: 0x93b6c8, fogNear: 90, fogFar: 380, hemiSky: 0xe2ecf4, hemiGround: 0x7a6650, sea: 0x24719f },
+    day: { sky: 0x7cc6f0, fog: 0xbfe3f2, fogNear: 90, fogFar: 380, hemiSky: 0xffffff, hemiGround: 0xb89a70, sea: 0x2a86c0 },
   },
   {
     id: 'docks', name: 'The Docks', blurb: 'Container yards and warehouses. Open lots between narrow stacks.',
     seed: 3301, open: 2, difficulty: 'Medium',
     pal: { sky: 0x06121a, fog: 0x0b1b24, fogNear: 50, fogFar: 250, ground: 0x34383b, road: 0x17191b, hemiSky: 0x6aa0b8, hemiGround: 0x12181a, sea: 0x0a2430 },
-    day: { sky: 0x8297a6, fog: 0x8e9ea7, fogNear: 80, fogFar: 340, hemiSky: 0xd6dfe5, hemiGround: 0x4a5056, sea: 0x285d74 },
+    day: { sky: 0x9bb3c2, fog: 0xb4c4cc, fogNear: 80, fogFar: 340, hemiSky: 0xe8f0f5, hemiGround: 0x5a6066, sea: 0x2e6a84 },
   },
   {
     id: 'downtown', name: 'Downtown', blurb: 'Neon towers on a tight grid. Sharp corners and plenty to dodge.',
     seed: 1103, open: 1, difficulty: 'Hard',
     pal: { sky: 0x070a16, fog: 0x0a0e1e, fogNear: 45, fogFar: 230, ground: 0x2b2e38, road: 0x15171d, hemiSky: 0x7084c8, hemiGround: 0x20121c, sea: null },
-    day: { sky: 0x7898bd, fog: 0x8ea3ba, fogNear: 80, fogFar: 360, hemiSky: 0xd8e2ef, hemiGround: 0x55504a, sea: null },
+    day: { sky: 0x8fb8e8, fog: 0xa9c4e0, fogNear: 80, fogFar: 360, hemiSky: 0xe6f0ff, hemiGround: 0x6a6458, sea: null },
   },
 ];
 const mapById = id => MAPS.find(m => m.id === id) || MAPS[0];

@@ -98,9 +98,9 @@ const Game = {
     Lighting.day = day; document.body.classList.toggle('day', day);
     Lighting.bright = day || !!map.arena; restyleRings(); setThreatAll(Player.level || 1);
     scene.background.setHex(p.sky); scene.fog.color.setHex(p.fog); scene.fog.near = p.fogNear; scene.fog.far = p.fogFar;
-    hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGround); hemi.intensity = day ? .95 : .75;
-    moon.color.setHex(day ? 0xfff1d6 : 0x9db4ff); moon.intensity = day ? .9 : .55; moon.position.set(day ? .6 : -1, 2, day ? .9 : .6);
-    ambient.color.setHex(day ? 0xffffff : 0xffb070); ambient.intensity = day ? .2 : .12;
+    hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGround); hemi.intensity = day ? 1.05 : .75;
+    moon.color.setHex(day ? 0xfff1d6 : 0x9db4ff); moon.intensity = day ? 1 : .55; moon.position.set(day ? .6 : -1, 2, day ? .9 : .6);
+    ambient.color.setHex(day ? 0xffffff : 0xffb070); ambient.intensity = day ? .22 : .12;
     for (const m of World.wallMats || []) m.emissiveIntensity = day ? .1 : .85;
     if (World.ground) World.ground.material.color.setHex(p.ground);   // the salt flats get a less dazzling sand by day
     if (World.sea) { World.sea.material.color.setHex(p.sea); World.sea.material.emissive.setHex(p.sea); World.sea.material.emissiveIntensity = day ? .15 : .35; }
