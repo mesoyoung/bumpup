@@ -125,8 +125,9 @@ function buildMap(scene, map, layout) {
     World.sea = sea;
     sea.position.set(SIZE / 2, .015, SIZE + SW + 150.6); scene.add(sea);
   }
+  const arena = !!map.arena;
   const roadMat = lam(P.road);
-  for (let i = 0; i <= N; i++) {
+  if (!arena) for (let i = 0; i <= N; i++) {
     const a = new THREE.Mesh(keep(new THREE.PlaneGeometry(RW * 2, SIZE + RW * 2).rotateX(-Math.PI / 2)), roadMat);
     a.position.set(i * CELL, .02, SIZE / 2); scene.add(a);
     const b = new THREE.Mesh(keep(new THREE.PlaneGeometry(SIZE + RW * 2, RW * 2).rotateX(-Math.PI / 2)), roadMat);
@@ -136,7 +137,7 @@ function buildMap(scene, map, layout) {
   const dashes = new THREE.InstancedMesh(GEO.plane, basic(0xd8c46a), 8000);
   dashes.frustumCulled = false;
   let dc = 0; const m = new THREE.Matrix4();
-  for (let i = 0; i <= N; i++) for (let s = 0; s < N; s++) for (let t = SW + 1.5; t < CELL - SW - 1; t += 4.5) {
+  if (!arena) for (let i = 0; i <= N; i++) for (let s = 0; s < N; s++) for (let t = SW + 1.5; t < CELL - SW - 1; t += 4.5) {
     m.makeScale(.22, 1, 2.2).setPosition(i * CELL, .04, s * CELL + t); dashes.setMatrixAt(dc++, m);
     m.makeScale(2.2, 1, .22).setPosition(s * CELL + t, .04, i * CELL); dashes.setMatrixAt(dc++, m);
   }
@@ -146,7 +147,7 @@ function buildMap(scene, map, layout) {
   const curbs = new THREE.InstancedMesh(GEO.box, lam(0x6d7385), N * N * 4);
   curbs.frustumCulled = false; let cc = 0;
   const L = CELL - RW * 2;
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+  if (!arena) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
     const cx = (i + .5) * CELL, cz = (j + .5) * CELL;
     m.makeScale(L, .16, .35).setPosition(cx, .08, j * CELL + RW); curbs.setMatrixAt(cc++, m);
     m.makeScale(L, .16, .35).setPosition(cx, .08, (j + 1) * CELL - RW); curbs.setMatrixAt(cc++, m);
@@ -182,7 +183,8 @@ function buildMap(scene, map, layout) {
   cont.frustumCulled = false; let kc = 0;
   const CONT = [0xc0392b, 0x2f6fc0, 0xd8902a, 0x2f9a66, 0x8e44ad, 0xb8bcc4];
 
-  const GROUND = { park: 0x1c3a27, plaza: 0x4a4256, island: 0x433b4d, beach: 0x8f7650, carpark: 0x22242b, yard: 0x3a3e42, warehouse: 0x3a3e42, quay: 0x484e53 };
+  const rockMat = lam(0x8a5a3c), rockTop = lam(0x6d4630);
+  const GROUND = { camp: 0xa99f8a, park: 0x1c3a27, plaza: 0x4a4256, island: 0x433b4d, beach: 0x8f7650, carpark: 0x22242b, yard: 0x3a3e42, warehouse: 0x3a3e42, quay: 0x484e53 };
   for (const b of layout) {
     World.blocks.push(b);
     World.loops.push({ x0: b.i * CELL + PED_PATH, z0: b.j * CELL + PED_PATH, x1: (b.i + 1) * CELL - PED_PATH, z1: (b.j + 1) * CELL - PED_PATH });
@@ -201,6 +203,11 @@ function buildMap(scene, map, layout) {
       if (x.style === 'container') {
         m.makeScale(w - .2, h, dd - .1).setPosition(cx, h / 2, cz); cont.setMatrixAt(kc, m);
         cont.setColorAt(kc, col.setHex(pick(CONT))); kc++; continue;
+      }
+      if (x.style === 'rock') {   // desert mesa: stacked, slightly offset slabs
+        const r1 = new THREE.Mesh(GEO.box, rockMat); r1.scale.set(w, h * .7, dd); r1.position.set(cx, h * .35, cz); scene.add(r1);
+        const r2 = new THREE.Mesh(GEO.box, rockTop); r2.scale.set(w * .82, h * .32, dd * .82); r2.position.set(cx + w * .05, h * .84, cz - dd * .04); scene.add(r2);
+        continue;
       }
       if (x.style === 'warehouse') {
         const shed = new THREE.Mesh(GEO.box, shedMat); shed.scale.set(w - .4, h, dd - .4); shed.position.set(cx, h / 2, cz); scene.add(shed);
@@ -259,7 +266,7 @@ function buildMap(scene, map, layout) {
     const b = new THREE.Mesh(GEO.box, barrierMat); b.scale.set(sx, 1.1, sz); b.position.set(x, .55, z); scene.add(b);
     const s = new THREE.Mesh(GEO.box, stripe); s.scale.set(sx + .02, .12, sz + .02); s.position.set(x, .9, z); scene.add(s);
   });
-  const sil = new THREE.InstancedMesh(GEO.box, lam(0x10131f), 120);
+  const sil = new THREE.InstancedMesh(GEO.box, lam(map.arena ? 0x2a2026 : 0x10131f), 120);   // distant towers, or distant mesas in the desert
   let sc = 0; const mid = SIZE / 2;
   for (let k = 0; k < 120; k++) {
     const ang = k / 120 * Math.PI * 2, r = SIZE * .72 + rand(60, 200);
@@ -287,47 +294,59 @@ function buildProps(scene) {
   // minTier: the tier index at which this prop appears (hazards show up once you can smash them)
   const put = (kind, x, z, rot, minTier) => { if (B[kind].count >= B[kind].max) return null; const it = B[kind].add(x, z, rot); it.minTier = minTier || 0; World.props.push(it); hashAdd(it); return it; };
 
-  // Food truck bays: the city is split into an even FOOD_GRID x FOOD_GRID grid of zones, and each
-  // zone gets one bay on the road side closest to its centre, so trucks are spread out evenly.
-  const bays = new Map();
-  for (let a = 0; a < FOOD_GRID; a++) for (let b = 0; b < FOOD_GRID; b++) {
-    const tx = (a + .5) / FOOD_GRID * SIZE, tz = (b + .5) / FOOD_GRID * SIZE;
-    let best = null, bd = 1e9;
-    for (let line = 0; line <= N; line++) for (let s = 0; s < N; s++) for (const side of [-1, 1]) for (const axis of ['x', 'z']) {
-      if ((line === 0 && side === -1) || (line === N && side === 1)) continue;
-      const x = axis === 'x' ? s * CELL + CELL / 2 : line * CELL + side * (RW + 1.3);
-      const z = axis === 'x' ? line * CELL + side * (RW + 1.3) : s * CELL + CELL / 2;
-      if (Math.hypot(x - START.x, z - START.z) < 40) continue;
-      const d = Math.hypot(x - tx, z - tz);
-      if (d < bd) { bd = d; best = `${line},${s},${side},${axis}`; }
+  if (World.map.arena) {
+    // No roads: one food truck near the centre of each zone, nudged off any rock
+    for (let a = 0; a < FOOD_GRID; a++) for (let b = 0; b < FOOD_GRID; b++) {
+      let x = (a + .5) / FOOD_GRID * SIZE, z = (b + .5) / FOOD_GRID * SIZE;
+      if (Math.hypot(x - START.x, z - START.z) < 40) z += 45;   // keep the start line clear
+      for (let k = 0; k < 20 && pushOutOfBuildings(x, z, 6); k++) { x += rand(-8, 8); z += rand(-8, 8); }
+      World.foodSpots.push({ x, z, rot: rand(0, 6.28), zone: a * FOOD_GRID + b });
     }
-    bays.set(best, a * FOOD_GRID + b);
-  }
-  let stops = 0;
-  // Each road segment has two sides. side = +1/-1 relative to the road centre line.
-  for (let line = 0; line <= N; line++) for (let s = 0; s < N; s++) for (const side of [-1, 1]) for (const axis of ['x', 'z']) {
-    // axis 'x': road runs along x at z = line*CELL. axis 'z': road runs along z at x = line*CELL.
-    if ((line === 0 && side === -1) || (line === N && side === 1)) continue; // outer edge faces the barrier
-    const at = (t, off) => axis === 'x' ? [s * CELL + t, line * CELL + side * off] : [line * CELL + side * off, s * CELL + t];
-    // lamp arm points toward the road
-    const lampRot = axis === 'x' ? (side > 0 ? Math.PI : 0) : (side > 0 ? -Math.PI / 2 : Math.PI / 2);
-    // Some sides keep a parking bay free in the middle for a food truck
-    const bay = bays.has(`${line},${s},${side},${axis}`);
-    for (const f of bay ? [.25, .75] : [.25, .5, .75]) { const [x, z] = at(CELL * f, RW + .8); put('lamp', x, z, lampRot, f === .75 ? 0 : 1); }
-    if (bay) { const [x, z] = at(CELL * .5, RW + 1.3); World.foodSpots.push({ x, z, rot: axis === 'x' ? Math.PI / 2 : 0, zone: bays.get(`${line},${s},${side},${axis}`) }); continue; }
-    if (stops < 50 && Math.random() < .14) { const [x, z] = at(CELL * .375, SW - 1.4); put('busstop', x, z, lampRot, 1); stops++; }
-    else if (Math.random() < .75) { const [x, z] = at(CELL * rand(.35, .4), SW - .8); put('bin', x, z, 0); }
-    if (Math.random() < .4) { const [x, z] = at(CELL * .62, RW + .9); put('hydrant', x, z, 0); }
-    else if (Math.random() < .35) { const [x, z] = at(CELL * .63, SW - .9); put('tree', x, z, 0, 2); }
-  }
-  // Roadworks: lines of cones along the lane edge
-  for (let k = 0; k < 40; k++) {
-    const line = 1 + Math.floor(Math.random() * (N - 1)), s = Math.floor(Math.random() * N), side = pick([-1, 1]);
-    const axis = pick(['x', 'z']), t0 = rand(SW + 2, CELL - SW - 12);
-    for (let c = 0; c < 4; c++) {
-      const t = t0 + c * 3.2;
-      const [x, z] = axis === 'x' ? [s * CELL + t, line * CELL + side * (RW - .9)] : [line * CELL + side * (RW - .9), s * CELL + t];
-      put('cone', x, z, 0);
+    // Lone signposts out in the open (they appear once you can knock them over)
+    for (let k = 0; k < 70; k++) { const x = rand(0, SIZE), z = rand(0, SIZE); if (!pushOutOfBuildings(x, z, 2)) put('lamp', x, z, rand(0, 6.28), 1); }
+  } else {
+  // Food truck bays: the city is split into an even FOOD_GRID x FOOD_GRID grid of zones, and each
+    // zone gets one bay on the road side closest to its centre, so trucks are spread out evenly.
+    const bays = new Map();
+    for (let a = 0; a < FOOD_GRID; a++) for (let b = 0; b < FOOD_GRID; b++) {
+      const tx = (a + .5) / FOOD_GRID * SIZE, tz = (b + .5) / FOOD_GRID * SIZE;
+      let best = null, bd = 1e9;
+      for (let line = 0; line <= N; line++) for (let s = 0; s < N; s++) for (const side of [-1, 1]) for (const axis of ['x', 'z']) {
+        if ((line === 0 && side === -1) || (line === N && side === 1)) continue;
+        const x = axis === 'x' ? s * CELL + CELL / 2 : line * CELL + side * (RW + 1.3);
+        const z = axis === 'x' ? line * CELL + side * (RW + 1.3) : s * CELL + CELL / 2;
+        if (Math.hypot(x - START.x, z - START.z) < 40) continue;
+        const d = Math.hypot(x - tx, z - tz);
+        if (d < bd) { bd = d; best = `${line},${s},${side},${axis}`; }
+      }
+      bays.set(best, a * FOOD_GRID + b);
+    }
+    let stops = 0;
+    // Each road segment has two sides. side = +1/-1 relative to the road centre line.
+    for (let line = 0; line <= N; line++) for (let s = 0; s < N; s++) for (const side of [-1, 1]) for (const axis of ['x', 'z']) {
+      // axis 'x': road runs along x at z = line*CELL. axis 'z': road runs along z at x = line*CELL.
+      if ((line === 0 && side === -1) || (line === N && side === 1)) continue; // outer edge faces the barrier
+      const at = (t, off) => axis === 'x' ? [s * CELL + t, line * CELL + side * off] : [line * CELL + side * off, s * CELL + t];
+      // lamp arm points toward the road
+      const lampRot = axis === 'x' ? (side > 0 ? Math.PI : 0) : (side > 0 ? -Math.PI / 2 : Math.PI / 2);
+      // Some sides keep a parking bay free in the middle for a food truck
+      const bay = bays.has(`${line},${s},${side},${axis}`);
+      for (const f of bay ? [.25, .75] : [.25, .5, .75]) { const [x, z] = at(CELL * f, RW + .8); put('lamp', x, z, lampRot, f === .75 ? 0 : 1); }
+      if (bay) { const [x, z] = at(CELL * .5, RW + 1.3); World.foodSpots.push({ x, z, rot: axis === 'x' ? Math.PI / 2 : 0, zone: bays.get(`${line},${s},${side},${axis}`) }); continue; }
+      if (stops < 50 && Math.random() < .14) { const [x, z] = at(CELL * .375, SW - 1.4); put('busstop', x, z, lampRot, 1); stops++; }
+      else if (Math.random() < .75) { const [x, z] = at(CELL * rand(.35, .4), SW - .8); put('bin', x, z, 0); }
+      if (Math.random() < .4) { const [x, z] = at(CELL * .62, RW + .9); put('hydrant', x, z, 0); }
+      else if (Math.random() < .35) { const [x, z] = at(CELL * .63, SW - .9); put('tree', x, z, 0, 2); }
+    }
+    // Roadworks: lines of cones along the lane edge
+    for (let k = 0; k < 40; k++) {
+      const line = 1 + Math.floor(Math.random() * (N - 1)), s = Math.floor(Math.random() * N), side = pick([-1, 1]);
+      const axis = pick(['x', 'z']), t0 = rand(SW + 2, CELL - SW - 12);
+      for (let c = 0; c < 4; c++) {
+        const t = t0 + c * 3.2;
+        const [x, z] = axis === 'x' ? [s * CELL + t, line * CELL + side * (RW - .9)] : [line * CELL + side * (RW - .9), s * CELL + t];
+        put('cone', x, z, 0);
+      }
     }
   }
   // Trees and loose props inside the blocks (parks, plazas, beach, yards)
@@ -400,13 +419,15 @@ function randomLaneSpot(px, pz, minDist) {
 function buildRamps(scene) {
   const deck = lam(0x30343f), edge = basic(0xff7b00), arrow = basic(0xffd23a);
   const used = new Set();
-  for (let k = 0; k < RAMP_COUNT * 4 && World.ramps.length < RAMP_COUNT; k++) {
+  const count = World.map.arena ? RAMP_COUNT + 12 : RAMP_COUNT;
+  for (let k = 0; k < count * 6 && World.ramps.length < count; k++) {
     const line = Math.floor(Math.random() * (N + 1)), s = Math.floor(Math.random() * N), axis = pick(['x', 'z']);
     const key = `${axis}${line}_${s}`; if (used.has(key)) continue; used.add(key);
     const dir = pick([1, -1]), t = CELL / 2;
-    const x = axis === 'x' ? s * CELL + t : line * CELL, z = axis === 'x' ? line * CELL : s * CELL + t;
+    let x = axis === 'x' ? s * CELL + t : line * CELL, z = axis === 'x' ? line * CELL : s * CELL + t;
+    if (World.map.arena) { x = rand(20, SIZE - 20); z = rand(20, SIZE - 20); if (pushOutOfBuildings(x, z, 8)) continue; }
     if (Math.hypot(x - START.x, z - START.z) < 50) continue; // keep the start clear
-    const rot = axis === 'x' ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (dir > 0 ? 0 : Math.PI);
+    const rot = World.map.arena ? rand(0, Math.PI * 2) : axis === 'x' ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (dir > 0 ? 0 : Math.PI);
     const g = new THREE.Group();
     const L = 7, H = 1.6, ang = Math.atan2(H, L), slope = Math.hypot(L, H);
     const top = new THREE.Mesh(GEO.box, deck); top.scale.set(3.2, .25, slope); top.rotation.x = -ang; top.position.set(0, H / 2, 0); g.add(top);

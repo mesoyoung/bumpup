@@ -2,7 +2,7 @@
 
 An arcade smash-and-grow driving game that runs in the browser. Drive through a neon night city, smash anything smaller than you, and grow from a sedan to an SUV, a truck and a bus.
 
-Three maps to pick from: **Downtown** (tight grid of towers), **Seaside Strip** (open plazas, car parks and a beach) and **The Docks** (container yards and warehouses). One **Tank** bar does the work of fuel and health: it drains as you drive and bump into things, and refills when you smash.
+Four maps, easiest first: **Salt Flats** (open desert, no roads), **Seaside Strip** (open plazas, car parks and a beach), **The Docks** (container yards and warehouses) and **Downtown** (tight grid of towers). Each can be played by day or night. One **Tank** bar does the work of fuel and health: it drains as you drive and bump into things, and refills when you smash.
 
 **Play:** https://mesoyoung.github.io/bumpup/
 
@@ -23,7 +23,7 @@ css/style.css     HUD and menu styling
 js/config.js      tuning: tiers, speeds, points, traffic mix, police, boost
 js/progress.js    missions and garage upgrades
 js/models.js      vehicle and prop models
-js/maps.js        the three maps: layouts, colours, picker previews
+js/maps.js        the four maps: layouts, colours, picker previews
 js/world.js       builds the chosen map: roads, buildings, props, ramps, collisions
 js/actors.js      pedestrians, traffic, police, particles
 js/player.js      driving physics and controls

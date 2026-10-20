@@ -57,7 +57,8 @@ function spawnPed(p, px, pz, minDist) {
   p.speed = rand(1.1, 1.8); p.state = 'walk'; p.timer = 0; p.phase = rand(0, 6);
   p.golden = Math.random() < GOLDEN_CHANCE;
   p.shirt = p.golden ? 0xffd23a : pick(C.shirts); p.skin = pick(C.skin);
-  const q = loopPoint(L, p.t); p.x = q.x; p.z = q.z; p.h = 0;
+  const q = loopPoint(L, p.t); p.x = q.x; p.z = q.z; p.h = 0; p.goal = null;
+  if (World.map && World.map.arena) { p.x = rand(L.x0, L.x1); p.z = rand(L.z0, L.z1); }
   p.alive = true; p.hl = .3; p.hw = .3;
   const c = new THREE.Color();
   Peds.torso.setColorAt(p.idx, c.setHex(p.shirt)); Peds.head.setColorAt(p.idx, c.setHex(p.skin));
@@ -77,21 +78,31 @@ function updatePeds(dt, player, now) {
       else { for (const k of ['legs', 'torso', 'head', 'ring']) Peds[k].setMatrixAt(p.idx, zero); continue; }
     }
     const dp = Math.hypot(p.x - player.x, p.z - player.z);
-    if (p.state !== 'flee' && dp < 16 && player.speed > 6) { p.state = 'flee'; p.timer = rand(1.2, 2); }
-    if (p.state === 'walk') {
+    // they notice you late, freeze for a moment, then scramble (slowly) out of the way
+    if (p.state !== 'flee' && p.state !== 'startle' && dp < PED_NOTICE && player.speed > 6) { p.state = 'startle'; p.timer = PED_FREEZE; }
+    if (p.state === 'startle') { p.timer -= dt; p.phase += dt * 30; if (p.timer <= 0) { p.state = 'flee'; p.timer = rand(1, 1.6); } }
+    if (p.state === 'walk' && World.map && World.map.arena) {
+      // no sidewalks in the open: stroll between nearby random points
+      if (!p.goal || Math.hypot(p.goal.x - p.x, p.goal.z - p.z) < .6) p.goal = { x: clamp(p.x + rand(-25, 25), 5, SIZE - 5), z: clamp(p.z + rand(-25, 25), 5, SIZE - 5) };
+      const dx = p.goal.x - p.x, dz = p.goal.z - p.z, d = Math.hypot(dx, dz) || 1;
+      p.x += dx / d * p.speed * dt; p.z += dz / d * p.speed * dt; p.h = Math.atan2(dx, dz); p.phase += dt * 8;
+      const hit = pushOutOfBuildings(p.x, p.z, .4); if (hit) { p.x = hit.x; p.z = hit.z; p.goal = null; }
+    } else if (p.state === 'walk') {
       p.t += p.dir * p.speed * dt;
       const q = loopPoint(p.loop, p.t); p.x = q.x; p.z = q.z; p.h = Math.atan2(q.tx * p.dir, q.tz * p.dir);
       p.phase += dt * 8;
+    } else if (p.state === 'startle') {
+      // frozen on the spot (bob shows the panic)
     } else if (p.state === 'flee') {
       let ax = p.x - player.x, az = p.z - player.z; const d = Math.hypot(ax, az) || 1;
       // run sideways out of the car's path
       const side = (ax * player.fz - az * player.fx) >= 0 ? 1 : -1;
       ax = ax / d * .6 + player.fz * side * .8; az = az / d * .6 - player.fx * side * .8;
       const n = Math.hypot(ax, az) || 1;
-      p.x += ax / n * 5.5 * dt; p.z += az / n * 5.5 * dt; p.h = Math.atan2(ax, az);
+      p.x += ax / n * PED_RUN * dt; p.z += az / n * PED_RUN * dt; p.h = Math.atan2(ax, az);
       p.phase += dt * 18;
       const hit = pushOutOfBuildings(p.x, p.z, .4); if (hit) { p.x = hit.x; p.z = hit.z; }
-      if ((p.timer -= dt) <= 0) p.state = 'return';
+      if ((p.timer -= dt) <= 0) p.state = World.map && World.map.arena ? 'walk' : 'return';
     } else {
       p.t = nearestT(p.loop, p.x, p.z);
       const q = loopPoint(p.loop, p.t), dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz);
@@ -153,8 +164,29 @@ class Car {
     this.targets.push({ x: bx + d2.dx * SW + o2.x, z: bz + d2.dz * SW + o2.z });
     this.node = { i: B.i + d2.dx, j: B.j + d2.dz }; this.dir = d2;
   }
+  // Open arena: no lanes, so cars roam between random points and steer round rocks
+  wander(dt, cars, player) {
+    if (!this.goal || Math.hypot(this.goal.x - this.x, this.goal.z - this.z) < 8 || (this.goalT -= dt) < 0) {
+      this.goal = { x: rand(25, SIZE - 25), z: rand(25, SIZE - 25) }; this.goalT = rand(8, 16);
+    }
+    const want = Math.atan2(this.goal.x - this.x, this.goal.z - this.z), dh = wrapAng(want - this.h);
+    const turn = { bus: 1.2, truck: 1.2, armor: 1.4, tank: 1 }[this.kind] || 1.7;
+    this.h = wrapAng(this.h + clamp(dh, -turn * dt, turn * dt));
+    let target = Math.abs(dh) > .6 ? this.cruise * .55 : this.cruise;
+    const fx = Math.sin(this.h), fz = Math.cos(this.h);
+    for (const o of cars) if (o !== this && o.alive) {
+      const ax = o.x - this.x, az = o.z - this.z, along = ax * fx + az * fz, lat = Math.abs(ax * fz - az * fx);
+      if (along > 0 && along < this.hl + o.hl + 8 && lat < 3) target = Math.min(target, Math.max(2, (along - this.hl - o.hl - 2) * 1.5));
+    }
+    this.v += clamp(target - this.v, -18 * dt, 8 * dt);
+    this.x += fx * this.v * dt; this.z += fz * this.v * dt;
+    const hit = pushOutOfBuildings(this.x, this.z, this.hw + .4);
+    if (hit) { this.x = hit.x; this.z = hit.z; this.goal = null; this.v *= .6; }
+    this.sync();
+  }
   update(dt, cars, player) {
     if (this.parked) return;
+    if (World.map && World.map.arena) return this.wander(dt, cars, player);
     if (!this.targets.length) this.plan();
     const t = this.targets[0];
     const dx = t.x - this.x, dz = t.z - this.z, dist = Math.hypot(dx, dz);
@@ -217,7 +249,7 @@ class Police extends Car {
     const d0 = Math.hypot(player.x - this.x, player.z - this.z);
     const lead = clamp(d0 / Math.max(this.v, 12), 0, 1.4);
     let tx = player.x + (player.vx || 0) * lead, tz = player.z + (player.vz || 0) * lead;
-    if (d0 > 30) {
+    if (d0 > 30 && !World.map.arena) {
       // Route along the road grid toward the player's nearest intersection
       const pi = clamp(Math.round(tx / CELL), 0, N), pj = clamp(Math.round(tz / CELL), 0, N);
       const ni = clamp(Math.round(this.x / CELL), 0, N), nj = clamp(Math.round(this.z / CELL), 0, N);

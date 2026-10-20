@@ -5,12 +5,12 @@
 // container yards. Each map is seeded, so it's the same every time.
 // ============================================================
 
-const MAPS = [
+const MAPS = [   // ordered easiest first
   {
-    id: 'downtown', name: 'Downtown', blurb: 'Neon towers on a tight grid. Sharp corners and plenty to dodge.',
-    seed: 1103, open: 1, difficulty: 'Hard',
-    pal: { sky: 0x070a16, fog: 0x0a0e1e, fogNear: 45, fogFar: 230, ground: 0x2b2e38, road: 0x15171d, hemiSky: 0x7084c8, hemiGround: 0x20121c, sea: null },
-    day: { sky: 0x8fb8e8, fog: 0xa9c4e0, fogNear: 80, fogFar: 360, hemiSky: 0xe6f0ff, hemiGround: 0x6a6458, sea: null },
+    id: 'flats', name: 'Salt Flats', blurb: 'Wide-open desert with no roads and no walls. Chase anything, anywhere.',
+    seed: 4409, open: 3, difficulty: 'Easiest', arena: true,
+    pal: { sky: 0x0b0d1c, fog: 0x141a2c, fogNear: 70, fogFar: 300, ground: 0xb7ad98, road: 0x8f8775, hemiSky: 0x7084c8, hemiGround: 0x3a3226, sea: null },
+    day: { sky: 0x9fd3f5, fog: 0xd9e6ee, fogNear: 110, fogFar: 420, hemiSky: 0xffffff, hemiGround: 0xa89470, sea: null },
   },
   {
     id: 'seaside', name: 'Seaside Strip', blurb: 'Wide plazas, car parks and a beach. Room to roam and chase.',
@@ -23,6 +23,12 @@ const MAPS = [
     seed: 3301, open: 2, difficulty: 'Medium',
     pal: { sky: 0x06121a, fog: 0x0b1b24, fogNear: 50, fogFar: 250, ground: 0x34383b, road: 0x17191b, hemiSky: 0x6aa0b8, hemiGround: 0x12181a, sea: 0x0a2430 },
     day: { sky: 0x9bb3c2, fog: 0xb4c4cc, fogNear: 80, fogFar: 340, hemiSky: 0xe8f0f5, hemiGround: 0x5a6066, sea: 0x2e6a84 },
+  },
+  {
+    id: 'downtown', name: 'Downtown', blurb: 'Neon towers on a tight grid. Sharp corners and plenty to dodge.',
+    seed: 1103, open: 1, difficulty: 'Hard',
+    pal: { sky: 0x070a16, fog: 0x0a0e1e, fogNear: 45, fogFar: 230, ground: 0x2b2e38, road: 0x15171d, hemiSky: 0x7084c8, hemiGround: 0x20121c, sea: null },
+    day: { sky: 0x8fb8e8, fog: 0xa9c4e0, fogNear: 80, fogFar: 360, hemiSky: 0xe6f0ff, hemiGround: 0x6a6458, sea: null },
   },
 ];
 const mapById = id => MAPS.find(m => m.id === id) || MAPS[0];
@@ -50,6 +56,7 @@ function makeLayout(map) {
       const d = Math.hypot((i + .5) * CELL - mid, (j + .5) * CELL - mid);
       if (map.id === 'downtown') layoutDowntown(b, d);
       else if (map.id === 'seaside') layoutSeaside(b, i, j);
+      else if (map.arena) layoutFlats(b, i, j);
       else layoutDocks(b, i, j);
       blocks.push(b);
     }
@@ -105,6 +112,24 @@ function layoutSeaside(b, i, j) {
   } else { b.type = 'park'; addTrees(b, 4, 5); addScatter(b, 'bin', 2, 4); }
 }
 
+// Salt Flats: no roads. Open ground with the odd rock mesa, little camps and scattered junk.
+function layoutFlats(b, i, j) {
+  b.type = 'flat';
+  // stretch the block over the (invisible) road grid so the open ground is continuous
+  const nearStart = Math.hypot((i + .5) * CELL - START.x, (j + .5) * CELL - START.z) < CELL * 1.1;
+  const r = Math.random();
+  if (!nearStart && r < .28) {
+    const w = rand(7, 15), dd = rand(7, 15), cx = rand(b.x0 + w / 2, b.x1 - w / 2), cz = rand(b.z0 + dd / 2, b.z1 - dd / 2);
+    b.boxes.push({ x0: cx - w / 2, z0: cz - dd / 2, x1: cx + w / 2, z1: cz + dd / 2, h: rand(4, 11), style: 'rock' });
+  } else if (!nearStart && r < .42) {
+    b.type = 'camp'; addParking(b, ['sedan', 'suv', 'suv']); addScatter(b, 'bin', 3, 4);
+  }
+  addScatter(b, 'bin', 2 + Math.floor(Math.random() * 3), 2);
+  addScatter(b, 'cone', 2 + Math.floor(Math.random() * 3), 2);
+  if (Math.random() < .3) addScatter(b, 'hydrant', 1, 3);
+  if (Math.random() < .35) addTrees(b, 1, 4);          // cacti
+}
+
 function layoutDocks(b, i, j) {
   if (j === N - 1) { b.type = 'quay'; addScatter(b, 'cone', 6, 3); return; }
   const r = Math.random();
@@ -128,19 +153,19 @@ function layoutDocks(b, i, j) {
 // ---------- top-down preview for the map picker ----------
 const GROUND_COLOURS = {
   build: '#232838', park: '#1d4a2c', plaza: '#4a4255', carpark: '#2b2d36', island: '#4a4255',
-  beach: '#a88c5a', yard: '#3b4045', warehouse: '#3b4045', quay: '#454b50',
+  beach: '#a88c5a', yard: '#3b4045', warehouse: '#3b4045', quay: '#454b50', flat: '#b7ad98', camp: '#a99f8a',
 };
-const BOX_COLOURS = { tower: '#5b6488', low: '#c06fa0', warehouse: '#7b8794', container: ['#d9534f', '#2f7dd1', '#e8a33d', '#3aa676'] };
+const BOX_COLOURS = { tower: '#5b6488', low: '#c06fa0', warehouse: '#7b8794', rock: '#8a5a3c', container: ['#d9534f', '#2f7dd1', '#e8a33d', '#3aa676'] };
 function drawMapPreview(canvas, map) {
   const blocks = makeLayout(map), c = canvas.getContext('2d'), W = canvas.width, pad = 10;
   const s = (W - pad * 2) / (SIZE + SW * 2), X = v => pad + (v + SW) * s;
   c.fillStyle = '#' + map.pal.sky.toString(16).padStart(6, '0'); c.fillRect(0, 0, W, W);
-  c.fillStyle = '#' + map.pal.road.toString(16).padStart(6, '0'); c.fillRect(X(-SW), X(-SW), (SIZE + SW * 2) * s, (SIZE + SW * 2) * s);
+  c.fillStyle = '#' + (map.arena ? map.pal.ground : map.pal.road).toString(16).padStart(6, '0'); c.fillRect(X(-SW), X(-SW), (SIZE + SW * 2) * s, (SIZE + SW * 2) * s);
   if (map.pal.sea) { c.fillStyle = '#' + map.pal.sea.toString(16).padStart(6, '0'); c.fillRect(0, X(SIZE + SW), W, W); }
   let k = 0;
   for (const b of blocks) {
     c.fillStyle = GROUND_COLOURS[b.type] || '#2b2e38';
-    c.fillRect(X(b.x0 - 2), X(b.z0 - 2), (b.x1 - b.x0 + 4) * s, (b.z1 - b.z0 + 4) * s);
+    if (!map.arena) c.fillRect(X(b.x0 - 2), X(b.z0 - 2), (b.x1 - b.x0 + 4) * s, (b.z1 - b.z0 + 4) * s);
     for (const t of b.trees) { c.fillStyle = '#2f8a50'; c.beginPath(); c.arc(X(t[0]), X(t[1]), 1.6, 0, 7); c.fill(); }
     for (const p of b.spots) { c.fillStyle = '#9aa3c0'; c.fillRect(X(p.x) - .8, X(p.z) - 1.4, 1.6, 2.8); }
     for (const x of b.boxes) {

@@ -77,6 +77,10 @@ const TRAFFIC_BY_SIZE = { 2: ['sedan'], 3: ['suv'], 4: ['truck'], 5: ['bus', 'bu
 const TRAFFIC_SPEED = { sedan: 14, suv: 13, truck: 11, bus: 9, armor: 11, tank: 7 };
 const TRAFFIC_COUNT = 42;
 const PED_COUNT = 110;
+const PED_NOTICE = 10;        // how close you get before a pedestrian notices you (m)
+const PED_FREEZE = .4;        // seconds they freeze in panic before running
+const PED_RUN = 3.6;          // how fast they scramble away (m/s)
+const PED_HIT = .65;          // pedestrian hit box half-size (m): generous so glancing hits count
 const FOOD_GRID = 3;           // food trucks: one per zone of a 3 x 3 grid (9 in all), evenly spread
 const GOLDEN_CHANCE = 0.04;   // golden targets are worth 5x
 

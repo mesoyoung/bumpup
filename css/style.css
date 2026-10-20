@@ -330,7 +330,7 @@ kbd { font-family: var(--body); font-size: 11px; font-weight: 700; padding: 1px 
 .mc-info p { margin: 0; font-size: 14px; color: var(--dim); min-height: 2.6em; }
 .mc-pills { display: flex; gap: 6px; flex-wrap: wrap; }
 .pill { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
-.pill.d-easy { color: var(--smash); border-color: rgba(61,255,143,.45); }
+.pill.d-easy, .pill.d-easiest { color: var(--smash); border-color: rgba(61,255,143,.45); }
 .pill.d-medium { color: var(--bounce); border-color: rgba(255,174,43,.45); }
 .pill.d-hard { color: #ff6f86; border-color: rgba(255,46,77,.45); }
 .mc-go { height: 50px; font-size: 26px; }

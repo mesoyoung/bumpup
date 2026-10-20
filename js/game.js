@@ -35,7 +35,7 @@ const Game = {
   const G = Game.G;
   const save = {
     best: store.get('best', 0), coins: store.get('coins', 0),
-    paint: store.get('paint', 'blue'), owned: store.get('owned', ['blue']), map: store.get('map', 'seaside'), time: store.get('time', 'night'),
+    paint: store.get('paint', 'blue'), owned: store.get('owned', ['blue']), map: store.get('map', 'flats'), time: store.get('time', 'night'),
   };
   const paintColor = () => (PAINTS.find(p => p.id === save.paint) || PAINTS[0]).color;
   const emitters = [];
@@ -336,7 +336,7 @@ const Game = {
     }
     for (const p of Peds.list) {
       if (!p.alive || Math.abs(p.x - P.x) > P.half + 3 || Math.abs(p.z - P.z) > P.half + 3) continue;
-      testHit(p, 'ped', 'ped', p.x, p.z, 0, .35, .35); if (!P.alive) return;
+      testHit(p, 'ped', 'ped', p.x, p.z, 0, PED_HIT, PED_HIT); if (!P.alive) return;
     }
     for (const c of [...G.traffic, ...G.police]) {   // sailing over a vehicle counts as a hop-over
       if (!c.alive || P.y <= KINDS[c.kind].ht || G.time - (c.hopAt || -9) < 2) continue;
