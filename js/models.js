@@ -212,6 +212,56 @@ function tankParts() {        // size 6: the only thing a bus should fear
 }
 const VEHICLE_PARTS = { sedan: sedanParts, suv: suvParts, pickup: pickupParts, truck: truckParts, bus: busParts, police: policeParts, psuv: policeSuvParts, swat: swatParts, riot: riotParts, armor: armorParts, tank: tankParts, food: foodTruckParts };
 
+// ---------- paint designs (see PAINTS in config.js) ----------
+// Repaints the body parts of a built vehicle and adds stripes / bands on top of them.
+function applyDesign(group, d) {
+  const base = lam(d.color);
+  const parts = group.children.filter(c => c.material === base && c.geometry === GEO.box && !c.rotation.x && !c.rotation.z);
+  if (d.finish) {
+    const mat = d.finish === 'chrome'
+      ? new THREE.MeshPhongMaterial({ color: d.color, specular: 0xffffff, shininess: 110, emissive: d.color, emissiveIntensity: .12 })
+      : new THREE.MeshLambertMaterial({ color: d.color, emissive: d.color, emissiveIntensity: .6 });
+    group.children.forEach(c => { if (c.material === base) c.material = mat; });
+  }
+  if (!d.look) return;
+  const acc = d.accentGlow ? lam(d.accent, d.accent, 1.2) : lam(d.accent);
+  const add = (mat, x, y, z, sx, sy, sz) => { const s = new THREE.Mesh(GEO.box, mat); s.position.set(x, y, z); s.scale.set(sx, sy, sz); group.add(s); };
+  for (const c of parts) {
+    const { x, y, z } = c.position, w = c.scale.x, h = c.scale.y, L = c.scale.z;
+    if (d.look === 'stripes' && w > 1.1) for (const sx of [-.2, .2]) add(acc, x + sx, y + h / 2 + .012, z, .2, .025, L * .98);
+    if (d.look === 'twotone' && h > .25) add(acc, x, y - h * .27, z, w + .02, h * .46, L + .02);
+    if (d.look === 'side' && h > .45) {
+      for (const s of [-1, 1]) add(acc, x + s * (w / 2 + .012), y, z, .025, Math.max(.12, h * .2), L * .9);
+      add(acc, x, y, z - L / 2 - .012, w * .9, Math.max(.12, h * .2), .025);   // carried across the back
+    }
+    if (d.look === 'checker' && h > .45) {
+      const white = lam(0xffffff), n = Math.floor(L * .9 / .3), nb = Math.floor(w * .9 / .3);
+      for (const row of [0, 1]) {
+        for (const s of [-1, 1]) for (let k = 0; k < n; k++) add((k + row) % 2 ? acc : white, x + s * (w / 2 + .012), y + (row - .5) * .14, z - L * .45 + (k + .5) * .3, .025, .14, .3);
+        for (let k = 0; k < nb; k++) add((k + row) % 2 ? acc : white, x - w * .45 + (k + .5) * .3, y + (row - .5) * .14, z - L / 2 - .012, .3, .14, .025);
+      }
+    }
+  }
+  // taxi: a lit sign on the highest roof
+  if (d.look === 'checker' && parts.length) {
+    const top = parts.reduce((a, c) => (c.position.y + c.scale.y / 2 > a.position.y + a.scale.y / 2 ? c : a));
+    add(lam(0xfff3b0, 0xffd23a, 1.3), top.position.x, top.position.y + top.scale.y / 2 + .14, top.position.z, .7, .26, .32);
+  }
+}
+const underglowOf = d => d.under || (d.accentGlow ? d.accent : d.color);
+// CSS preview for the paint shop swatch
+function designSwatch(d) {
+  const c = '#' + d.color.toString(16).padStart(6, '0'), a = '#' + (d.accent || 0).toString(16).padStart(6, '0');
+  let bg = c;
+  if (d.look === 'stripes') bg = `linear-gradient(90deg, ${c} 36%, ${a} 36% 46%, ${c} 46% 54%, ${a} 54% 64%, ${c} 64%)`;
+  if (d.look === 'twotone') bg = `linear-gradient(180deg, ${c} 52%, ${a} 52%)`;
+  if (d.look === 'side') bg = `linear-gradient(180deg, ${c} 40%, ${a} 40% 60%, ${c} 60%)`;
+  if (d.look === 'checker') bg = `linear-gradient(180deg, ${c} 0 38%, transparent 38% 66%, ${c} 66%), repeating-linear-gradient(90deg, ${a} 0 5px, #fff 5px 10px)`;
+  if (d.finish === 'chrome') bg = `linear-gradient(135deg, rgba(255,255,255,.85) 0, transparent 30%, rgba(0,0,0,.35) 55%, transparent 75%, rgba(255,255,255,.6)), ${bg}`;
+  const glow = '#' + underglowOf(d).toString(16).padStart(6, '0');
+  return `--paint:${glow};background:${bg}` + (d.finish === 'glow' ? `;box-shadow:0 0 18px ${c}, 0 0 4px ${c}` : '');
+}
+
 // ---------- props (sidewalk furniture) ----------
 const PROP_PARTS = {
   lamp: () => [

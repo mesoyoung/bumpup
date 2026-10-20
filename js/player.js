@@ -84,17 +84,18 @@ function readInput(dt) {
 
 const Player = {
   alive: false,
-  build(scene, paint) {
-    this.scene = scene; this.paint = paint;
+  build(scene, design) {
+    this.scene = scene; this.design = design; this.paint = underglowOf(design);
     if (this.mesh) scene.remove(this.mesh);
     const T = TIERS[this.tier];
     this.mesh = new THREE.Group();
     // body sits in a pivot so it can pitch and roll on its "suspension"
-    this.body = partsToGroup(VEHICLE_PARTS[T.key](paint, true));
+    this.body = partsToGroup(VEHICLE_PARTS[T.key](design.color, true));
+    applyDesign(this.body, design);
     this.mesh.add(this.body);
     const len = T.circ.o[T.circ.o.length - 1] - T.circ.o[0] + T.circ.r * 2;
     this.half = len / 2;
-    this.glow = new THREE.Mesh(GEO.disc, new THREE.MeshBasicMaterial({ color: paint, map: GLOW_TEX, transparent: true, opacity: .75, blending: THREE.AdditiveBlending, depthWrite: false }));
+    this.glow = new THREE.Mesh(GEO.disc, new THREE.MeshBasicMaterial({ color: this.paint, map: GLOW_TEX, transparent: true, opacity: .75, blending: THREE.AdditiveBlending, depthWrite: false }));
     this.glow.scale.set(T.circ.r * 2.4, 1, this.half * 1.5); this.glow.position.y = .07;
     this.beam = new THREE.Mesh(GEO.disc, new THREE.MeshBasicMaterial({ color: 0xfff1cc, map: GLOW_TEX, transparent: true, opacity: .35, blending: THREE.AdditiveBlending, depthWrite: false }));
     this.beam.scale.set(T.circ.r * 3.2, 1, 14); this.beam.position.set(0, .08, this.half + 11);
@@ -112,7 +113,7 @@ const Player = {
     scene.add(this.mesh, this.glow, this.beam); // ground glows stay on the ground when the car jumps
     this.sync();
   },
-  reset(scene, paint) {
+  reset(scene, design) {
     if (this.glow) scene.remove(this.glow, this.beam);
     this.tier = 0; this.level = 1;
     this.x = START.x; this.z = START.z; this.h = Math.PI / 2;
@@ -122,12 +123,12 @@ const Player = {
     this.driftT = 0; this.brakeT = 0; this.reversing = false; this.stuckT = 0; this.unstuckT = 0; this.hopCD = 0; this.dashT = 0; this.dashCD = 0; this.air = 0;
     this.prevBrake = false; this.prevBoost = false; this.lastFwd = 0;
     this.fx = 1; this.fz = 0; this.lateral = 0;
-    this.build(scene, paint);
+    this.build(scene, design);
   },
   setTier(t) {
     this.tier = t; this.level = t + 1; this.fuel = this.fuelMax;   // growing tops up the tank
     this.scene.remove(this.glow, this.beam);
-    this.build(this.scene, this.paint);
+    this.build(this.scene, this.design);
     this.grow = 0; // play the growth animation
   },
   scaleSpeed(f) { this.vx *= f; this.vz *= f; },

@@ -117,11 +117,24 @@ const POLICE_SPEED = .45;     // police top speed sits this far between your cru
 const COINS_PER = 100;         // score points per coin at the end of a run
 
 // ---- Paint jobs (bought with coins between runs) ----
+// look:   stripes (twin racing stripes) | twotone (accent lower half) | side (side stripe) | checker (taxi band)
+// finish: glow (body glows) | chrome (shiny)     accentGlow: the accent colour glows too
+// Every design applies to all four vehicles, and the underglow follows it.
 const PAINTS = [
-  { id: 'blue', name: 'Midnight', color: 0x3a6bff, cost: 0 },
-  { id: 'pink', name: 'Hot Pink', color: 0xff3d8b, cost: 150 },
-  { id: 'lime', name: 'Toxic',    color: 0x8cff3a, cost: 400 },
-  { id: 'gold', name: 'Chrome Gold', color: 0xffc23a, cost: 1000 },
+  { id: 'blue',        name: 'Midnight',      color: 0x3a6bff, cost: 0 },
+  { id: 'pink',        name: 'Hot Pink',      color: 0xff3d8b, cost: 150 },
+  { id: 'taxi',        name: 'Taxi',          color: 0xffc72c, accent: 0x111111, look: 'checker', cost: 300 },
+  { id: 'lime',        name: 'Toxic',         color: 0x8cff3a, cost: 400 },
+  { id: 'lemans',      name: 'Le Mans',       color: 0x1f4fd8, accent: 0xffffff, look: 'stripes', cost: 500 },
+  { id: 'mint',        name: 'Retro Mint',    color: 0x7fe3c0, accent: 0xffffff, look: 'side', cost: 500 },
+  { id: 'interceptor', name: 'Interceptor',   color: 0xf2f2f2, accent: 0x111111, look: 'twotone', cost: 700 },
+  { id: 'sunset',      name: 'Sunset',        color: 0xff8a3d, accent: 0x6a2c91, look: 'twotone', cost: 800 },
+  { id: 'lava',        name: 'Lava',          color: 0x1a1a1a, accent: 0xff4a1a, look: 'stripes', accentGlow: true, cost: 900 },
+  { id: 'gold',        name: 'Chrome Gold',   color: 0xffc23a, finish: 'chrome', cost: 1000 },
+  { id: 'cyber',       name: 'Cyber Neon',    color: 0x14d9ff, finish: 'glow', cost: 1200 },
+  { id: 'venom',       name: 'Venom',         color: 0x37ff6b, accent: 0x111111, look: 'stripes', finish: 'glow', cost: 1500 },
+  { id: 'chrome',      name: 'Liquid Chrome', color: 0xc8d0dc, finish: 'chrome', under: 0x9fd8ff, cost: 1800 },
+  { id: 'galaxy',      name: 'Galaxy',        color: 0x5a2bd6, accent: 0xff4fd8, look: 'side', finish: 'chrome', accentGlow: true, cost: 2500 },
 ];
 
 // ---- Helpers ----

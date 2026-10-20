@@ -37,7 +37,8 @@ const Game = {
     best: store.get('best', 0), coins: store.get('coins', 0),
     paint: store.get('paint', 'blue'), owned: store.get('owned', ['blue']), map: store.get('map', 'flats'), time: store.get('time', 'night'),
   };
-  const paintColor = () => (PAINTS.find(p => p.id === save.paint) || PAINTS[0]).color;
+  const paintDesign = () => PAINTS.find(p => p.id === save.paint) || PAINTS[0];
+  const paintColor = () => underglowOf(paintDesign());
   const emitters = [];
 
   // ---------- spawning ----------
@@ -126,7 +127,7 @@ const Game = {
 
   function startRun() {
     Sound.init(); Sound.resume();
-    Player.reset(scene, paintColor());
+    Player.reset(scene, paintDesign());
     Object.assign(G, {
       score: 0, combo: 0, comboTimer: 0, pending: 0, bestCombo: 0, biggest: null, biggestSize: 0,
       counts: {}, upgrades: [{ tier: 0, time: 0 }], time: 0, heat: 0, stars: 0, lastSmash: 0,
@@ -146,7 +147,7 @@ const Game = {
   }
   // The landing screen is the live city: your car waits on the centre line while traffic drives past.
   function parkCar() {
-    Player.reset(scene, paintColor()); Player.alive = false; Player.speed = 0;
+    Player.reset(scene, paintDesign()); Player.alive = false; Player.speed = 0;
     dummy.x = Player.x; dummy.z = Player.z;
   }
   function toTitle() {

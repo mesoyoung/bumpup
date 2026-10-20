@@ -141,9 +141,9 @@ const UI = {
     $('driverLevel').textContent = Missions.state.level;
     $('paints').innerHTML = PAINTS.map(p => {
       const has = owned.includes(p.id), sel = p.id === paintId;
-      const hex = '#' + p.color.toString(16).padStart(6, '0');
-      return `<button class="paint${sel ? ' sel' : ''}${has ? '' : ' locked'}" data-id="${p.id}" style="--paint:${hex}" aria-pressed="${sel}">
-        <span class="swatch"></span><span class="pname">${p.name}</span><span class="pcost">${has ? (sel ? 'Selected' : 'Owned') : '◉ ' + fmt(p.cost)}</span></button>`;
+      const tag = p.finish === 'chrome' ? 'Chrome' : p.finish === 'glow' ? 'Glow' : p.look ? { stripes: 'Stripes', twotone: 'Two-tone', side: 'Side stripe', checker: 'Checker' }[p.look] : 'Solid';
+      return `<button class="paint${sel ? ' sel' : ''}${has ? '' : ' locked'}" data-id="${p.id}" aria-pressed="${sel}">
+        <span class="swatch" style="${designSwatch(p)}"></span><span class="pname">${p.name}</span><span class="ptag">${tag}</span><span class="pcost">${has ? (sel ? 'Selected' : 'Owned') : '◉ ' + fmt(p.cost)}</span></button>`;
     }).join('');
     $('garageCoins').textContent = fmt(coins);
     const doneN = Missions.state.active.filter(m => m.done).length;
