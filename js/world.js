@@ -119,7 +119,8 @@ function buildMap(scene, map, layout) {
   const P = map.pal;
   // Ground + sidewalks (one slab) and roads on top
   const ground = new THREE.Mesh(keep(new THREE.PlaneGeometry(SIZE + EXT * 2 + 400, SIZE + EXT * 2 + 400).rotateX(-Math.PI / 2)), lam(P.ground));
-  ground.position.set(SIZE / 2, 0, SIZE / 2); scene.add(ground);
+  ground.material = keep(new THREE.MeshLambertMaterial({ color: P.ground }));   // own material so daytime can tone it down
+  ground.position.set(SIZE / 2, 0, SIZE / 2); scene.add(ground); World.ground = ground;
   if (P.sea) { // water beyond the far edge
     const sea = new THREE.Mesh(keep(new THREE.PlaneGeometry(SIZE + EXT * 2 + 400, 300).rotateX(-Math.PI / 2)), keep(new THREE.MeshLambertMaterial({ color: P.sea, emissive: P.sea, emissiveIntensity: .35 })));
     World.sea = sea;
