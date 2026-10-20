@@ -241,11 +241,11 @@ function applyDesign(group, d) {
   if (d.finish) {
     const mat = d.finish === 'chrome'
       ? new THREE.MeshStandardMaterial({ color: d.color, metalness: 1, roughness: .16, envMap: chromeEnv(), envMapIntensity: 1.35 })
-      : new THREE.MeshLambertMaterial({ color: d.color, emissive: d.color, emissiveIntensity: .6 });
+      : new THREE.MeshLambertMaterial({ color: d.color, emissive: d.color, emissiveIntensity: .3 });
     group.children.forEach(c => { if (c.material === base) c.material = mat; });
   }
   if (!d.look) return;
-  const acc = d.accentGlow ? lam(d.accent, d.accent, 1.2) : lam(d.accent);
+  const acc = d.accentGlow ? lam(d.accent, d.accent, .6) : lam(d.accent);
   const add = (mat, x, y, z, sx, sy, sz) => { const s = new THREE.Mesh(GEO.box, mat); s.position.set(x, y, z); s.scale.set(sx, sy, sz); group.add(s); };
   for (const c of parts) {
     const { x, y, z } = c.position, w = c.scale.x, h = c.scale.y, L = c.scale.z;
