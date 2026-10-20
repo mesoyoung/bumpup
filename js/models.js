@@ -213,13 +213,34 @@ function tankParts() {        // size 6: the only thing a bus should fear
 const VEHICLE_PARTS = { sedan: sedanParts, suv: suvParts, pickup: pickupParts, truck: truckParts, bus: busParts, police: policeParts, psuv: policeSuvParts, swat: swatParts, riot: riotParts, armor: armorParts, tank: tankParts, food: foodTruckParts };
 
 // ---------- paint designs (see PAINTS in config.js) ----------
+// A fake city to reflect in chrome paint: bright sky above, dark road below, and a horizon of
+// streaky neon lights all round. Metal reflects it, so chrome reads as chrome instead of flat colour.
+let CHROME_ENV = null;
+function chromeEnv() {
+  if (CHROME_ENV) return CHROME_ENV;
+  const face = side => {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+    if (side === 'top') { const g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#c9d3e8'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); }
+    else if (side === 'bottom') { x.fillStyle = '#16181f'; x.fillRect(0, 0, 128, 128); }
+    else {
+      const g = x.createLinearGradient(0, 0, 0, 128);
+      g.addColorStop(0, '#f4f7ff'); g.addColorStop(.42, '#9aa6c4'); g.addColorStop(.5, '#ffffff'); g.addColorStop(.56, '#2a2e3a'); g.addColorStop(1, '#0c0d12');
+      x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+      for (let k = 0; k < 7; k++) { x.fillStyle = ['#ff4fa3', '#2ff3ff', '#ffb347', '#ffffff'][k % 4]; x.fillRect(Math.random() * 120, 60 + Math.random() * 14, 6 + Math.random() * 18, 3); }
+    }
+    return c;
+  };
+  CHROME_ENV = new THREE.CubeTexture(['px', 'nx', 'top', 'bottom', 'pz', 'nz'].map(face));
+  CHROME_ENV.needsUpdate = true;
+  return CHROME_ENV;
+}
 // Repaints the body parts of a built vehicle and adds stripes / bands on top of them.
 function applyDesign(group, d) {
   const base = lam(d.color);
   const parts = group.children.filter(c => c.material === base && c.geometry === GEO.box && !c.rotation.x && !c.rotation.z);
   if (d.finish) {
     const mat = d.finish === 'chrome'
-      ? new THREE.MeshPhongMaterial({ color: d.color, specular: 0xffffff, shininess: 110, emissive: d.color, emissiveIntensity: .12 })
+      ? new THREE.MeshStandardMaterial({ color: d.color, metalness: 1, roughness: .16, envMap: chromeEnv(), envMapIntensity: 1.35 })
       : new THREE.MeshLambertMaterial({ color: d.color, emissive: d.color, emissiveIntensity: .6 });
     group.children.forEach(c => { if (c.material === base) c.material = mat; });
   }

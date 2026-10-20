@@ -130,7 +130,7 @@ const PAINTS = [
   { id: 'interceptor', name: 'Interceptor',   color: 0xf2f2f2, accent: 0x111111, look: 'twotone', cost: 700 },
   { id: 'sunset',      name: 'Sunset',        color: 0xff8a3d, accent: 0x6a2c91, look: 'twotone', cost: 800 },
   { id: 'lava',        name: 'Lava',          color: 0x1a1a1a, accent: 0xff4a1a, look: 'stripes', accentGlow: true, cost: 900 },
-  { id: 'gold',        name: 'Chrome Gold',   color: 0xffc23a, finish: 'chrome', cost: 1000 },
+  { id: 'gold',        name: 'Chrome Gold',   color: 0xffcf5a, finish: 'chrome', under: 0xffc23a, cost: 1000 },
   { id: 'cyber',       name: 'Cyber Neon',    color: 0x14d9ff, finish: 'glow', cost: 1200 },
   { id: 'venom',       name: 'Venom',         color: 0x37ff6b, accent: 0x111111, look: 'stripes', finish: 'glow', cost: 1500 },
   { id: 'chrome',      name: 'Liquid Chrome', color: 0xc8d0dc, finish: 'chrome', under: 0x9fd8ff, cost: 1800 },
