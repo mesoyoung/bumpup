@@ -76,7 +76,9 @@
   </header>
   <div class="land-bottom">
     <p class="tagline">Smash anything smaller. Grow into something bigger.</p>
-    <button id="playBtn" class="btn primary drive">Drive</button>
+    <div class="map-row">
+      <button id="mapBtn" class="map-btn" aria-label="Change map"><small>Map</small><b id="mapName">Seaside Strip</b><span class="mb-change">Change ›</span></button>
+    </div>
     <nav class="land-nav" aria-label="Menus">
       <button class="nav-btn" data-sheet="missions"><span class="nb-label">Missions</span><span id="missionBadge" class="nb-badge">0/3</span></button>
       <button class="nav-btn" data-sheet="garage"><span class="nb-label">Garage</span></button>
@@ -84,9 +86,7 @@
       <button class="nav-btn" data-sheet="howto"><span class="nb-label">How to play</span></button>
       <button id="steerBtn" class="nav-btn quiet">Steering: Easy</button>
     </nav>
-    <div class="map-row">
-      <button id="mapBtn" class="map-btn" aria-label="Change map"><small>Map</small><b id="mapName">Seaside Strip</b><span class="mb-change">Change ›</span></button>
-    </div>
+    <button id="playBtn" class="btn primary drive">Drive</button>
   </div>
 </section>
 
