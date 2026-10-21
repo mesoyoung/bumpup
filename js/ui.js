@@ -3,6 +3,13 @@
 // title / pause / game-over screens.
 // ============================================================
 
+// line icons for the round toggles on the landing screen
+const ICONS = {
+  soundOn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  soundOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></g></svg>',
+  moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="currentColor"/></svg>',
+};
 const UI = {
   floats: [],
   init() {
@@ -163,7 +170,9 @@ const UI = {
       return `<div class="up-row-g"><div class="up-info"><b>${up.name}</b><span>${up.desc(l)}${max ? '' : ` <em>→ ${up.desc(l + 1)}</em>`}</span><span class="pips" aria-label="Level ${l} of ${UPGRADE_MAX}">${pips}</span></div>
         <button class="buy" data-up="${up.id}" ${max || coins < cost ? 'disabled' : ''}>${max ? 'Maxed' : '◉ ' + fmt(cost)}</button></div>`;
     }).join('');
-    $('muteBtn').textContent = Sound.muted ? 'Sound off' : 'Sound on';
+    const mb = $('muteBtn'), off = Sound.muted;
+    mb.innerHTML = ICONS[off ? 'soundOff' : 'soundOn']; mb.classList.toggle('off', off);
+    mb.setAttribute('aria-label', off ? 'Sound off: turn on' : 'Sound on: turn off'); mb.title = off ? 'Sound off' : 'Sound on';
     $('steerBtn').textContent = Settings.steer === 'easy' ? 'Steering: Easy' : 'Steering: Drift';
   },
   missionCards(list) {

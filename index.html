@@ -69,12 +69,15 @@
       <span><small>Coins</small><b id="coins">0</b></span>
       <span><small>Level</small><b id="driverLevel">1</b></span>
     </div>
+    <div class="land-icons">
+      <button id="muteBtn" class="round-btn" aria-label="Sound on" title="Sound on"></button>
+      <button id="timeBtn" class="round-btn" aria-label="Night: switch to day" title="Night"></button>
+    </div>
   </header>
   <div class="land-bottom">
     <p class="tagline">Smash anything smaller. Grow into something bigger.</p>
     <div class="map-row">
       <button id="mapBtn" class="map-btn" aria-label="Change map"><small>Map</small><b id="mapName">Seaside Strip</b><span class="mb-change">Change ›</span></button>
-      <button id="timeBtn" class="time-btn" aria-label="Switch between day and night">☾ Night</button>
     </div>
     <nav class="land-nav" aria-label="Menus">
       <button class="nav-btn" data-sheet="missions"><span class="nb-label">Missions</span><span id="missionBadge" class="nb-badge">0/3</span></button>
@@ -82,7 +85,6 @@
       <button class="nav-btn" data-sheet="paint"><span class="nb-label">Paint</span></button>
       <button class="nav-btn" data-sheet="howto"><span class="nb-label">How to play</span></button>
       <button id="steerBtn" class="nav-btn quiet">Steering: Easy</button>
-      <button id="muteBtn" class="nav-btn quiet">Sound on</button>
     </nav>
     <button id="playBtn" class="btn primary drive">Drive</button>
   </div>

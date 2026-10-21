@@ -106,7 +106,8 @@ const Game = {
     if (World.ground) World.ground.material.color.setHex(p.ground);   // the salt flats get a less dazzling sand by day
     if (World.sea) { World.sea.material.color.setHex(p.sea); World.sea.material.emissive.setHex(p.sea); World.sea.material.emissiveIntensity = day ? .15 : .35; }
     if (World.batches.lamp && World.batches.lamp.glow) World.batches.lamp.glow.visible = !day;
-    $('timeBtn').textContent = day ? '☀ Day' : '☾ Night';
+    const tb = $('timeBtn'); tb.innerHTML = ICONS[day ? 'sun' : 'moon']; tb.classList.toggle('day', day);
+    tb.setAttribute('aria-label', day ? 'Day: switch to night' : 'Night: switch to day'); tb.title = day ? 'Day' : 'Night';
   }
   function loadMap(id) {
     const map = mapById(id);
