@@ -154,7 +154,7 @@ class Car {
     this.node = spot.next; this.dir = spot.d; this.targets = []; this.v = this.cruise;
     this.sync();
   }
-  setThreat(level) { this.ring.material = RING_MATS[this.golden ? 'gold' : threatOf(this.size, level)]; }
+  setThreat(level) { this.ring.material = RING_MATS[threatOf(this.size, level)]; }
   plan() {
     const B = this.node, d = this.dir;
     let opts = DIRS.filter(o => validDir(B.i, B.j, o) && !(o.dx === -d.dx && o.dz === -d.dz));
