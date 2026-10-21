@@ -4,7 +4,7 @@
 // air), growing between tiers, and keyboard / touch input.
 // ============================================================
 
-const Input = { steer: 0, boost: false, brake: false, hop: false, keys: {}, kSteer: 0, touch: null, lastTap: null, pointers: new Set() };
+const Input = { steer: 0, boost: false, btnBoost: false, brake: false, hop: false, keys: {}, kSteer: 0, touch: null, lastTap: null, pointers: new Set() };
 
 // ---------- One-finger touch gestures ----------
 //   drag left/right ............ steer (hard drag at speed = slide)
@@ -63,6 +63,13 @@ function initInput(canvas) {
     endTouch();
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  // on-screen Boost button: hold it with your other thumb (it isn't part of the canvas, so it never counts as a second finger)
+  const bb = $('boostBtn');
+  const bbOff = () => { Input.btnBoost = false; bb.classList.remove('held'); };
+  bb.addEventListener('pointerdown', e => { e.preventDefault(); Input.btnBoost = true; bb.classList.add('held'); try { bb.setPointerCapture(e.pointerId); } catch (err) {} });
+  bb.addEventListener('pointerup', bbOff); bb.addEventListener('pointercancel', bbOff); bb.addEventListener('lostpointercapture', bbOff);
+  bb.addEventListener('contextmenu', e => e.preventDefault());
+  addEventListener('blur', bbOff);
   canvas.addEventListener('pointermove', e => { if (Input.touch && e.pointerId === Input.touch.id) Input.touch.cx = e.clientX; });
 }
 
@@ -72,13 +79,14 @@ function readInput(dt) {
   let ks = 0;
   if (K.ArrowLeft || K.KeyA) ks -= 1;
   if (K.ArrowRight || K.KeyD) ks += 1;
-  Input.kSteer = ks ? clamp(Input.kSteer + ks * dt * 5, -1, 1) : 0;
+  const kMax = Settings.steer === 'easy' ? .9 : 1;   // Easy: a held key turns hard but doesn't tip into a slide
+  Input.kSteer = ks ? clamp(Input.kSteer + ks * dt * 5, -kMax, kMax) : 0;
   if (ks && Math.sign(Input.kSteer) !== ks) Input.kSteer = ks * .2;
   let ts = 0;
   if (T && T.cx != null) { const sx = T.cx - T.ox; ts = Math.abs(sx) < 6 ? 0 : clamp(sx / STEER_PX, -1, 1); }
   Input.steer = Input.kSteer || ts;
   const kb = !!(K.ShiftLeft || K.ShiftRight || K.Space);
-  Input.boost = (T && T.mode === 'boost') || kb;
+  Input.boost = (T && T.mode === 'boost') || kb || Input.btnBoost;
   Input.brake = false;   // no brake: Crazy Dash = boost from slow; getting stuck backs you off automatically
 }
 
@@ -172,8 +180,9 @@ const Player = {
     const autoBack = this.unstuckT > 0;
 
     // ---- Every hard turn at speed slides; the slide ends when you ease off ----
-    const steerAmt = Math.abs(Input.steer);
-    if (!this.drifting && grounded && vF > SLIDE_MIN_SPEED && steerAmt > T.slideAt) { this.drifting = true; this.driftT = 0; }
+    const steerAmt = Math.abs(Input.steer), easy = Settings.steer === 'easy';
+    // Easy steering: only a full-lock drag starts a slide, so the car mostly goes where you point it
+    if (!this.drifting && grounded && vF > SLIDE_MIN_SPEED && steerAmt > (easy ? .97 : T.slideAt)) { this.drifting = true; this.driftT = 0; }
     if (this.drifting) {
       this.driftT += dt;
       if (steerAmt < .3 || vF < 8 || Input.brake) {
@@ -207,7 +216,7 @@ const Player = {
     }
 
     // ---- steering: snappy at low speed, slight understeer flat-out, wild in a slide ----
-    const speedF = clamp(Math.abs(vF) / 7, 0, 1) * (1 - .3 * clamp((vF - 25) / 25, 0, 1));
+    const speedF = clamp(Math.abs(vF) / 7, 0, 1) * (1 - (easy ? .1 : .3) * clamp((vF - 25) / 25, 0, 1)) * (easy && !this.drifting ? 1.12 : 1);
     const steerIn = autoBack ? this.unstuckDir : Input.steer;
     let want = -steerIn * T.steer * speedF * (this.drifting ? DRIFT_STEER : 1) * (vF < -.5 ? -1 : 1);
     if (!grounded) want *= .35;

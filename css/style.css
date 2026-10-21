@@ -99,7 +99,7 @@ body.ramming .ring.bounce { animation: pulse .2s infinite alternate; }
   .steer-hint.boost #steerKnob { background: #6ad5ff; }
   .steer-hint.brake #steerKnob { background: var(--wreck); }
   #steerKnob { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px; border-radius: 50%; background: var(--ink); }
-  .gestures { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; position: absolute; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(340px, 86vw);
+  .gestures { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; position: absolute; left: 50%; bottom: calc(212px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(340px, 86vw);
     background: var(--glass); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--dim); opacity: 0; transition: opacity .4s; }
   .gestures.on { opacity: 1; }
   .gestures b { color: var(--ink); display: block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
@@ -368,3 +368,14 @@ body.day #minimap { box-shadow: 0 0 0 2px rgba(255,255,255,.35), 0 6px 24px rgba
 .coach .cr.red { color: #ff2e4d; border-color: #ff2e4d; }
 @keyframes crPulse { to { transform: scale(1.18); } }
 @media (min-width: 641px) { .coach { top: 140px; } }
+
+/* on-screen Boost button (touch only): hold with your other thumb */
+.boost-btn { display: none; }
+@media (pointer: coarse) {
+  .boost-btn { display: grid; place-items: center; position: absolute; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+    width: 84px; height: 84px; border-radius: 50%; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    background: radial-gradient(circle at 50% 40%, rgba(106,213,255,.35), rgba(10,14,30,.6)); border: 2px solid #6ad5ff; color: #e8f7ff;
+    font-family: var(--display); font-size: 19px; font-weight: 700; font-style: italic; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 0 16px rgba(106,213,255,.35); }
+  .boost-btn.held, .boost-btn.on { background: radial-gradient(circle, rgba(106,213,255,.85), rgba(40,120,200,.6)); color: #04121f; transform: scale(.94); box-shadow: 0 0 28px rgba(106,213,255,.8); }
+  .boost-btn.ram { border-color: var(--gold); background: radial-gradient(circle, rgba(255,210,58,.9), rgba(200,120,20,.6)); box-shadow: 0 0 30px rgba(255,210,58,.8); }
+}

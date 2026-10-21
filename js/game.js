@@ -145,8 +145,8 @@ const Game = {
     UI.show(null);
     Game.state = 'play';
     const touchUI = matchMedia('(pointer: coarse)').matches;
-    UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'double-tap and hold' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
-    G.coachUntil = 4; G.amberTips = 0; G.redTips = 0; G.coachScan = 0; G.ramTold = false;
+    UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'hold Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
+    G.coachUntil = 4; G.redTips = 0; G.coachScan = 0; G.ramTold = false; G.lastBoostAt = 0;
     $('gestures').classList.add('on'); clearTimeout(Game.gt); Game.gt = setTimeout(() => $('gestures').classList.remove('on'), 6000);
   }
   // The landing screen is the live city: your car waits on the centre line while traffic drives past.
@@ -279,13 +279,15 @@ const Game = {
   function coach() {
     const P = Player, touchUI = matchMedia('(pointer: coarse)').matches;
     if (Ram.on) {
-      if (!G.ramTold && coachSeen.ram < 6) { G.ramTold = true; coachSeen.ram++; store.set('coach', coachSeen); UI.coach('<b>Power Ram!</b> Boosting smashes amber', 'ram', 2); }
+      if (!G.ramTold && coachSeen.ram < 6) { G.ramTold = true; coachSeen.ram++; store.set('coach', coachSeen); UI.coach('<span><b>Power Ram!</b> Boosting smashes amber</span>', 'ram', 2); }
       return;
     }
     G.ramTold = false;
+    if (P.boosting) G.lastBoostAt = G.time;
     if (G.time < G.coachUntil || G.time - G.coachScan < .25) return;
     G.coachScan = G.time;
-    const wantAmber = coachSeen.rammed < 5 && coachSeen.amber < 10 && G.amberTips < 2, wantRed = coachSeen.red < 6 && G.redTips < 1;
+    // amber: whenever you haven't boosted for 10 s; red: once a run for your first few runs
+    const wantAmber = G.time - G.lastBoostAt >= 10, wantRed = coachSeen.red < 6 && G.redTips < 1;
     if (!wantAmber && !wantRed) return;
     let best = null, bd = 34;
     const look = (x, z, th) => {
@@ -298,8 +300,8 @@ const Game = {
     for (const c of G.police) if (c.alive) look(c.x, c.z, threatOf(c.size, P.level));
     for (const it of World.props) if (it.alive && Math.abs(it.x - P.x) < 34 && Math.abs(it.z - P.z) < 34) look(it.x, it.z, it.batch.threat === 'wreck' ? 'bounce' : it.batch.threat);
     if (best === 'bounce') {
-      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "double-tap and hold" : "hold Shift"}</span>`, 'amber', 3.2);
-      coachSeen.amber++; G.amberTips++; G.coachUntil = G.time + 9;
+      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "hold the Boost button" : "hold Shift"}</span>`, 'amber', 3.2);
+      coachSeen.amber++; G.coachUntil = G.time + 10;
     } else if (best === 'wreck') {
       UI.coach(`<i class="cr red"></i><span><b>Red</b> wrecks you. Steer round it or ${touchUI ? "swipe up" : "press ↑"} to hop</span>`, 'red', 3.2);
       coachSeen.red++; G.redTips++; G.coachUntil = G.time + 9;
@@ -562,6 +564,11 @@ const Game = {
   $('resumeBtn').addEventListener('click', () => { Game.state = 'play'; UI.show(null); Sound.duck(false); });
   $('quitBtn').addEventListener('click', () => { Sound.siren(0); Sound.duck(false); toTitle(); });
   $('pauseBtn').addEventListener('click', () => Game.onPauseKey());
+  $('steerBtn').addEventListener('click', () => {
+    Settings.steer = Settings.steer === 'easy' ? 'drift' : 'easy'; store.set('steer', Settings.steer);
+    UI.title(save.best, save.coins, save.paint, save.owned);
+    UI.toast(Settings.steer === 'easy' ? 'Easy steering: grippy, slides only at full lock' : 'Drift steering: every hard turn at speed slides');
+  });
   $('muteBtn').addEventListener('click', () => { Sound.setMuted(!Sound.muted); UI.title(save.best, save.coins, save.paint, save.owned); });
   $('paints').addEventListener('click', e => {
     const b = e.target.closest('.paint'); if (!b) return;

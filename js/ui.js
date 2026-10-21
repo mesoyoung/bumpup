@@ -41,6 +41,7 @@ const UI = {
     $('fuelBar').classList.toggle('low', tank < .25); $('fuelBar').classList.toggle('mid', tank >= .25 && tank < .5);
     $('speed').textContent = Math.round(Math.hypot(P.vx, P.vz) * 3.6);
     $('boostTag').classList.toggle('on', P.boosting);
+    $('boostBtn').classList.toggle('on', P.boosting); $('boostBtn').classList.toggle('ram', Ram.on);
     $('ramTag').classList.toggle('on', Ram.on);
     document.body.classList.toggle('ramming', Ram.on);
     $('driftTag').classList.toggle('on', P.drifting);
@@ -163,6 +164,7 @@ const UI = {
         <button class="buy" data-up="${up.id}" ${max || coins < cost ? 'disabled' : ''}>${max ? 'Maxed' : '◉ ' + fmt(cost)}</button></div>`;
     }).join('');
     $('muteBtn').textContent = Sound.muted ? 'Sound off' : 'Sound on';
+    $('steerBtn').textContent = Settings.steer === 'easy' ? 'Steering: Easy' : 'Steering: Drift';
   },
   missionCards(list) {
     const scopeTag = { run: 'One run', total: 'Total', best: 'Once' };
