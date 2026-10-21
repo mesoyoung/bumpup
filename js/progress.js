@@ -73,7 +73,7 @@ const Missions = {
   },
   save() { store.set('missions', this.state); },
   drawSet() {
-    const L = this.state.level, pool = MISSIONS.filter(d => !d.min || L >= d.min - 1);
+    const L = this.state.level, pool = this.pool(L);
     const picked = [];
     while (picked.length < 3) {
       const d = pick(pool);
@@ -84,7 +84,20 @@ const Missions = {
     }
     this.state.active = picked;
   },
+  // Easy steering never slides, so slide missions are left out of the draw
+  pool(L) { return MISSIONS.filter(d => (!d.min || L >= d.min - 1) && !(d.id === 'drift' && Settings.steer === 'easy')); },
+  // ...and an unfinished one is swapped for something else when you play on Easy
+  swapDrift() {
+    const A = this.state.active, i = A.findIndex(m => m.id === 'drift' && !m.done);
+    if (i < 0 || Settings.steer !== 'easy') return;
+    const L = this.state.level, others = A.filter((_, k) => k !== i);
+    const opts = this.pool(L).filter(d => !others.some(o => o.id === d.id) && !(d.scope === 'best' && others.some(o => this.def(o).scope === 'best')));
+    if (!opts.length) return;
+    const d = pick(opts); A[i] = { id: d.id, target: d.target(L), progress: 0, done: false };
+    this.save();
+  },
   runStart() {
+    this.swapDrift();
     this.completedThisRun = [];
     for (const m of this.state.active) if (!m.done && this.def(m).scope === 'run') m.progress = 0;
   },

@@ -79,8 +79,7 @@ function readInput(dt) {
   let ks = 0;
   if (K.ArrowLeft || K.KeyA) ks -= 1;
   if (K.ArrowRight || K.KeyD) ks += 1;
-  const kMax = Settings.steer === 'easy' ? .9 : 1;   // Easy: a held key turns hard but doesn't tip into a slide
-  Input.kSteer = ks ? clamp(Input.kSteer + ks * dt * 5, -kMax, kMax) : 0;
+  Input.kSteer = ks ? clamp(Input.kSteer + ks * dt * 5, -1, 1) : 0;
   if (ks && Math.sign(Input.kSteer) !== ks) Input.kSteer = ks * .2;
   let ts = 0;
   if (T && T.cx != null) { const sx = T.cx - T.ox; ts = Math.abs(sx) < 6 ? 0 : clamp(sx / STEER_PX, -1, 1); }
@@ -181,8 +180,8 @@ const Player = {
 
     // ---- Every hard turn at speed slides; the slide ends when you ease off ----
     const steerAmt = Math.abs(Input.steer), easy = Settings.steer === 'easy';
-    // Easy steering: only a full-lock drag starts a slide, so the car mostly goes where you point it
-    if (!this.drifting && grounded && vF > SLIDE_MIN_SPEED && steerAmt > (easy ? .97 : T.slideAt)) { this.drifting = true; this.driftT = 0; }
+    // Easy steering never slides: the car always goes where you point it
+    if (!easy && !this.drifting && grounded && vF > SLIDE_MIN_SPEED && steerAmt > T.slideAt) { this.drifting = true; this.driftT = 0; }
     if (this.drifting) {
       this.driftT += dt;
       if (steerAmt < .3 || vF < 8 || Input.brake) {

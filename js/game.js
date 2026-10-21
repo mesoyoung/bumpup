@@ -567,7 +567,9 @@ const Game = {
   $('steerBtn').addEventListener('click', () => {
     Settings.steer = Settings.steer === 'easy' ? 'drift' : 'easy'; store.set('steer', Settings.steer);
     UI.title(save.best, save.coins, save.paint, save.owned);
-    UI.toast(Settings.steer === 'easy' ? 'Easy steering: grippy, slides only at full lock' : 'Drift steering: every hard turn at speed slides');
+    Missions.swapDrift();
+    UI.title(save.best, save.coins, save.paint, save.owned);
+    UI.toast(Settings.steer === 'easy' ? 'Easy steering: no slides, goes where you point' : 'Drift steering: every hard turn at speed slides');
   });
   $('muteBtn').addEventListener('click', () => { Sound.setMuted(!Sound.muted); UI.title(save.best, save.coins, save.paint, save.owned); });
   $('paints').addEventListener('click', e => {
