@@ -280,7 +280,7 @@ const Game = {
   function coach() {
     const P = Player, touchUI = matchMedia('(pointer: coarse)').matches;
     if (Ram.on) {
-      if (!G.ramTold && coachSeen.ram < 6) { G.ramTold = true; coachSeen.ram++; store.set('coach', coachSeen); UI.coach('<span><b>Power Ram!</b> Boosting smashes amber</span>', 'ram', 2); }
+      if (!G.ramTold && coachSeen.ram < 6) { G.ramTold = true; coachSeen.ram++; store.set('coach', coachSeen); UI.coach('<span><b>Power Ram!</b> Boosting smashes amber</span>', 'ram', 3); }
       return;
     }
     G.ramTold = false;
@@ -301,10 +301,10 @@ const Game = {
     for (const c of G.police) if (c.alive) look(c.x, c.z, threatOf(c.size, P.level));
     for (const it of World.props) if (it.alive && Math.abs(it.x - P.x) < 34 && Math.abs(it.z - P.z) < 34) look(it.x, it.z, it.batch.threat === 'wreck' ? 'bounce' : it.batch.threat);
     if (best === 'bounce') {
-      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "hold the Boost button" : "hold Shift"}</span>`, 'amber', 3.2);
+      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "hold the Boost button" : "hold Shift"}</span>`, 'amber', 5.5);
       coachSeen.amber++; G.coachUntil = G.time + 10;
     } else if (best === 'wreck') {
-      UI.coach(`<i class="cr red"></i><span><b>Red</b> wrecks you. Steer round it or ${touchUI ? "swipe up" : "press ↑"} to hop</span>`, 'red', 3.2);
+      UI.coach(`<i class="cr red"></i><span><b>Red</b> wrecks you. Steer round it or ${touchUI ? "swipe up" : "press ↑"} to hop</span>`, 'red', 5.5);
       coachSeen.red++; G.redTips++; G.coachUntil = G.time + 9;
     }
     if (best) store.set('coach', coachSeen);
