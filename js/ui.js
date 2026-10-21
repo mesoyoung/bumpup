@@ -10,6 +10,7 @@ const ICONS = {
   sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></g></svg>',
   moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="currentColor"/></svg>',
 };
+const FLOAT_LIFE = 2.2;   // seconds a "+50" stays on screen
 const UI = {
   floats: [],
   init() {
@@ -118,11 +119,11 @@ const UI = {
     const W = innerWidth, H = innerHeight;
     for (let i = this.floats.length - 1; i >= 0; i--) {
       const f = this.floats[i]; f.t += dt;
-      if (f.t > 1.1) { f.el.remove(); this.floats.splice(i, 1); continue; }
-      this.v.set(f.x, f.y + f.t * 3, f.z).project(camera);
+      if (f.t > FLOAT_LIFE) { f.el.remove(); this.floats.splice(i, 1); continue; }
+      this.v.set(f.x, f.y + Math.min(f.t, 1) * 2.2, f.z).project(camera);   // rises, then hangs there
       if (this.v.z > 1) { f.el.style.opacity = 0; continue; }
       f.el.style.transform = `translate(${(this.v.x + 1) / 2 * W}px, ${(1 - this.v.y) / 2 * H}px) translate(-50%,-50%) scale(${1 + Math.max(0, .3 - f.t)})`;
-      f.el.style.opacity = f.t > .75 ? (1.1 - f.t) / .35 : 1;
+      f.el.style.opacity = f.t > FLOAT_LIFE - .5 ? (FLOAT_LIFE - f.t) / .5 : 1;
     }
   },
   clearFloats() { for (const f of this.floats) f.el.remove(); this.floats = []; },
