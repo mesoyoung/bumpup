@@ -73,6 +73,7 @@ const Game = {
     for (const p of Peds.list) spawnPed(p, Player.x, Player.z, 20);
     for (const d of Debris.list) d.scene.remove(d.obj);
     Debris.list = []; emitters.length = 0;
+    for (const s of Shocks.list) s.scene.remove(s.m); Shocks.list = [];
     for (let i = 0; i < TRAFFIC_COUNT; i++) spawnTraffic(35);
     spawnParked();
     placeFoodTrucks();
@@ -114,6 +115,7 @@ const Game = {
     G.traffic = []; G.police = [];
     for (const d of Debris.list) d.scene.remove(d.obj);
     Debris.list = []; emitters.length = 0;
+    for (const s of Shocks.list) s.scene.remove(s.m); Shocks.list = [];
     clearWorld(scene); buildWorld(scene, map); applyPalette(map);
     Player.x = START.x; Player.z = START.z;
     for (let i = 0; i < TRAFFIC_COUNT; i++) spawnTraffic(0);
@@ -132,7 +134,7 @@ const Game = {
     Object.assign(G, {
       score: 0, combo: 0, comboTimer: 0, pending: 0, bestCombo: 0, biggest: null, biggestSize: 0,
       counts: {}, upgrades: [{ tier: 0, time: 0 }], time: 0, heat: 0, stars: 0, lastSmash: 0,
-      shake: 0, hitPause: 0, slow: 0, deathReason: '', dyingT: 0, respawnQueue: [], lastBlock: 0,
+      shake: 0, kick: 0, fovKick: 0, hitPause: 0, slow: 0, deathReason: '', dyingT: 0, respawnQueue: [], lastBlock: 0,
     });
     Ram.on = false;
     resetWorld();
@@ -225,29 +227,45 @@ const Game = {
     if (!tiny) P.fuel = Math.min(P.fuelMax, P.fuel + k.fuel * (obj.golden ? 3 : 1) * (P.boosting ? BOOST_FUEL : 1));
     if (ram) { P.fuel -= RAM_DAMAGE * Garage.damage; G.shake = Math.max(G.shake, .5); UI.flash('gold'); }
     G.heat += k.pts * (obj instanceof Police ? 3 : 1) * (tiny ? TINY_PTS : 1) / HEAT_TIER[P.tier]; G.lastSmash = G.time;
-    // launch it
-    const push = 1.15 + (P.level - k.size) * .25;
-    const vx = P.vx * push, vz = P.vz * push;
-    const up = kind === 'ped' ? rand(10, 14) : 5 + (P.level - k.size) * 3 + rand(0, 3);
+    // launch it: punted off faster than you're going, flung to the side you clipped, spinning hard
+    const sp = Math.hypot(P.vx, P.vz) || 1, fx = P.vx / sp, fz = P.vz / sp;
+    const side = Math.sign((x - P.x) * fz - (z - P.z) * fx) || (Math.random() < .5 ? -1 : 1);   // which side of your nose it was on
+    const gap = P.level - k.size;
+    const push = 1.55 + gap * .3, lat = sp * (.3 + gap * .08) * side;
+    const vx = P.vx * push + fz * lat, vz = P.vz * push - fx * lat;
+    const up = kind === 'ped' ? rand(11, 15) : 7 + gap * 3.5 + rand(0, 3);
+    const chain = tiny ? 0 : Math.min(G.combo, 10);           // every hit in a chain lands a little harder
     if (type === 'prop') {
       obj.alive = false; obj.respawnAt = G.time + 30; obj.batch.show(obj, false);
-      launchDebris(scene, partsToGroup(obj.batch.parts), obj.x, obj.z, obj.rot, vx, vz, up, 4);
+      launchDebris(scene, partsToGroup(obj.batch.parts), obj.x, obj.z, obj.rot, vx, vz, up, 4, { spin: 1.8, flash: .07 });
       if (kind === 'hydrant') emitters.push({ x: obj.x, z: obj.z, until: G.time + 2.5 });
     } else if (type === 'ped') {
       obj.alive = false; obj.respawnAt = G.time + 8;
-      launchDebris(scene, pedGroup(obj.shirt, obj.skin), obj.x, obj.z, obj.h, vx, vz, up, 3.5);
-    } else { // car or police
+      launchDebris(scene, pedGroup(obj.shirt, obj.skin), obj.x, obj.z, obj.h, vx, vz, up, 3.5, { spin: 2.2, flash: .06 });
+    } else { // car or police: the body flies, the wheels come off
       obj.alive = false; obj.mesh.remove(obj.ring);
-      launchDebris(scene, obj.mesh, obj.x, obj.z, obj.h, vx * .8, vz * .8, up, 5);
+      shedWheels(scene, obj.mesh, obj.x, obj.z, obj.h, vx * .85, vz * .85, up);
+      launchDebris(scene, obj.mesh, obj.x, obj.z, obj.h, vx * .85, vz * .85, up, 5, { spin: 1.6, flash: .08 });
       if (!(obj instanceof Police) && !obj.parked) G.respawnQueue.push(G.time + 3);
+    }
+    // plough on: a small surge with every real hit, so a chain speeds you up
+    if (!tiny) {
+      const T = TIERS[P.tier], cap = P.boosting ? T.boost * 1.05 : T.cruise + (T.boost - T.cruise) * .45, kick = 1.05 + k.size * .01;
+      if (sp < cap) { const f = Math.min(kick, cap / sp); P.vx *= f; P.vz *= f; }
     }
     // juice
     const col = { ped: [obj.shirt || 0xffffff, 0xffffff], bin: [0x2f6b3c, 0xb5a17a, 0xdddddd], cone: [0xff6a00, 0xffffff], hydrant: [0x3aa0ff, 0xd62828],
       lamp: [0xffc46b, 0xffffff, 0x3a3f4a], busstop: [0x9fe0ff, 0xffffff], tree: [0x2a7a49, 0x5a3d2b] }[kind] || [obj.color || 0xcccccc, 0x333333, 0xffd23a];
-    emit(x, 1, z, 10 + k.size * 8, col, { speed: 6 + k.size * 2, up: 7 + k.size * 2, size: .14 + k.size * .07, vx: P.vx * .3, vz: P.vz * .3 });
-    if (!tiny && k.size >= 2) G.shake = Math.max(G.shake, .18 + k.size * .1);       // no shake for bins, people or tiny stuff
-    if (!tiny && k.size >= 3) G.hitPause = .07;                                      // rare freeze on the big ones
-    if (!tiny && k.size >= 2) P.hop(1.5 + k.size * 1.3);
+    emit(x, 1, z, 14 + k.size * 10 + chain * 2, col, { speed: 8 + k.size * 2.5, up: 8 + k.size * 2, size: .16 + k.size * .08, vx: vx * .35, vz: vz * .35 });
+    if (type === 'car') emit(x, 1, z, 18 + k.size * 6, [0xfff3b0, 0xffd23a, 0xffffff], { speed: 16, up: 9, size: .09, vx: P.vx * .5, vz: P.vz * .5, life: .45 });   // sparks
+    if (!tiny) shockwave(scene, x, z, 3 + k.size * 1.6 + chain * .25, obj.golden ? 0xffd23a : Lighting.bright ? 0xffffff : 0xfff0d0);
+    if (!tiny) {
+      const boom = 1 + chain * .08;
+      G.shake = Math.max(G.shake, (.14 + k.size * .1) * boom);
+      G.hitPause = Math.max(G.hitPause, Math.min(.11, .028 + k.size * .014 + chain * .004));   // a beat of freeze on every real hit
+      G.kick = Math.min(1.6, G.kick + (.35 + k.size * .2) * boom);                             // camera lurches into the hit
+      G.fovKick = Math.min(9, G.fovKick + (2 + k.size * 1.2) * boom);
+    }
     Sound.smash(kind, k.size); if (!tiny && G.combo > 1) Sound.combo(G.combo);
     const label = (ram ? 'POWER RAM ' : '') + `+${fmt(pts)}` + (gold > 1 ? ' GOLD' : '') + (!tiny && G.combo > 1 ? `  x${G.combo}` : '');
     addScore(pts, x, 2.5 + k.size * .6, z, label, tiny ? 'tiny' : gold > 1 ? 'gold' : ram ? 'ram' : boost > 1 ? 'boosted' : k.size === P.level ? 'big' : '');
@@ -427,11 +445,13 @@ const Game = {
     const s = rumble + G.shake * .6;
     camera.position.x += rand(-s, s); camera.position.y += rand(-s, s) * .6; camera.position.z += rand(-s, s);
     G.shake = Math.max(0, G.shake - dt * 2.2);
+    camera.position.x += P.fx * G.kick; camera.position.z += P.fz * G.kick; camera.position.y -= G.kick * .25;   // lurch into a hit
+    G.kick *= Math.exp(-dt * 11); G.fovKick *= Math.exp(-dt * 7);
     look.set(P.x + P.fx * 7, 1.1 + T.camH * .15 + P.y * .8, P.z + P.fz * 7);
     camera.lookAt(look);
     camera.rotateZ(clamp(P.yawRate * .035, -.1, .1));                         // lean into turns
     const base = innerWidth < innerHeight ? 74 : 60;
-    const fov = base + clamp(sp / T.cruise, 0, 1) * 7 + over * 18 + P.dashT * 20;
+    const fov = base + clamp(sp / T.cruise, 0, 1) * 7 + over * 18 + P.dashT * 20 + G.fovKick;
     $('speedlines').style.opacity = clamp((sp - T.cruise * .85) / 12, 0, .55) + over * .4 + P.dashT * .9;
     camera.fov += (fov - camera.fov) * Math.min(1, dt * 5); camera.updateProjectionMatrix();
     Sound.musicLift(over);
@@ -479,7 +499,7 @@ const Game = {
     for (const p of G.police) p.update(dt, G.traffic, who, t);
     for (const f of G.food) f.update(dt, t, who.x, who.z);
     updatePeds(dt, who, t);
-    updateDebris(dt);
+    updateDebris(dt); updateShocks(dt);
     for (let i = emitters.length - 1; i >= 0; i--) {
       const e = emitters[i]; if (t > e.until) { emitters.splice(i, 1); continue; }
       emit(e.x, .8, e.z, 3, [0x6cc6ff, 0xbfe9ff, 0xffffff], { speed: 1.5, up: 13, size: .22, life: 1 });

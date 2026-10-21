@@ -314,18 +314,57 @@ class FoodTruck {
 
 // ---------------- Flying debris ----------------
 const Debris = { list: [] };
-function launchDebris(scene, obj, x, z, rot, vx, vz, power, life) {
-  obj.position.set(x, 0, z); obj.rotation.set(0, rot, 0);
+function launchDebris(scene, obj, x, z, rot, vx, vz, power, life, o) {
+  o = o || {};
+  obj.position.set(x, o.y || 0, z); obj.rotation.set(0, rot, 0);
   scene.add(obj);
-  Debris.list.push({
+  const sp = o.spin || 1;
+  const d = {
     obj, vx: vx + rand(-2, 2), vy: power, vz: vz + rand(-2, 2),
-    wx: rand(-6, 6), wy: rand(-4, 4), wz: rand(-6, 6), life: life || 4, scene,
-  });
+    wx: rand(-6, 6) * sp, wy: rand(-4, 4) * sp, wz: rand(-6, 6) * sp, life: life || 4, scene, flash: o.flash || 0,
+  };
+  if (d.flash) {   // a white flash the instant it's hit
+    d.saved = [];
+    obj.traverse(m => { if (m.isMesh) { d.saved.push([m, m.material]); m.material = FLASH_MAT; } });
+  }
+  Debris.list.push(d);
+}
+const FLASH_MAT = new THREE.MeshBasicMaterial({ color: 0xffffff });
+// Pull the wheels off a wrecked vehicle and send them bouncing away on their own.
+function shedWheels(scene, mesh, x, z, h, vx, vz, power) {
+  const wheels = mesh.children.filter(c => c.geometry === GEO.wheel).slice(0, 4);
+  const cs = Math.cos(h), sn = Math.sin(h);
+  for (const w of wheels) {
+    const lx = w.position.x, lz = w.position.z;
+    const wx = lx * cs + lz * sn, wz = lz * cs - lx * sn, out = Math.hypot(wx, wz) || 1;
+    mesh.remove(w);
+    const g = new THREE.Group(); w.position.set(0, 0, 0); g.add(w);
+    const kick = rand(5, 10);
+    launchDebris(scene, g, x + wx, z + wz, h, vx + wx / out * kick, vz + wz / out * kick, power * rand(.7, 1.3), 3.5, { y: w.position.y + .4, spin: 2.2 });
+  }
+}
+// Shockwave rings that race out across the ground on a smash
+const Shocks = { list: [] };
+const SHOCK_GEO = new THREE.RingGeometry(.82, 1, 40).rotateX(-Math.PI / 2);
+function shockwave(scene, x, z, r, color) {
+  const m = new THREE.Mesh(SHOCK_GEO, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .85, depthWrite: false, blending: Lighting.bright ? THREE.NormalBlending : THREE.AdditiveBlending }));
+  m.position.set(x, .12, z); m.scale.setScalar(.5); scene.add(m);
+  Shocks.list.push({ m, r, t: 0, scene });
+}
+function updateShocks(dt) {
+  for (let i = Shocks.list.length - 1; i >= 0; i--) {
+    const s = Shocks.list[i]; s.t += dt;
+    const k = s.t / .38;
+    if (k >= 1) { s.scene.remove(s.m); s.m.material.dispose(); Shocks.list.splice(i, 1); continue; }
+    s.m.scale.setScalar(.5 + (1 - (1 - k) * (1 - k)) * s.r);
+    s.m.material.opacity = .85 * (1 - k);
+  }
 }
 function updateDebris(dt) {
   for (let i = Debris.list.length - 1; i >= 0; i--) {
     const d = Debris.list[i], o = d.obj;
     d.life -= dt;
+    if (d.saved && (d.flash -= dt) <= 0) { for (const [m, mat] of d.saved) m.material = mat; d.saved = null; }
     if (d.life < 1) { o.position.y -= dt * 2.5; if (d.life <= 0) { d.scene.remove(o); Debris.list.splice(i, 1); } continue; }
     d.vy -= 28 * dt;
     o.position.x += d.vx * dt; o.position.y += d.vy * dt; o.position.z += d.vz * dt;
