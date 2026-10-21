@@ -151,10 +151,11 @@ function weighted(list) {
   for (const [k, w] of list) { if ((r -= w) <= 0) return k; }
   return list[0][0];
 }
-// Player settings. steer: 'easy' (grippy, rarely slides) or 'drift' (every hard turn at speed slides)
-const Settings = { steer: 'easy' };
+// Player settings. steer: 'simple' (touch: hold left or right of centre to turn; no slides),
+//   'easy' (shown as Drag: drag from where you touch; no slides), 'drift' (drag; hard turns at speed slide)
+const Settings = { steer: 'simple' };
 const store = {
   get(k, d) { try { const v = localStorage.getItem('bumpup.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('bumpup.' + k, JSON.stringify(v)); } catch (e) {} },
 };
-Settings.steer = store.get('steer', 'easy');
+Settings.steer = store.get('steer', 'simple');

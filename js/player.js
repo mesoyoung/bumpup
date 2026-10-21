@@ -35,11 +35,13 @@ function initInput(canvas) {
     if (Input.pointers.size >= 2) { endTouch(); if (Game.onPauseKey) Game.onPauseKey(); return; }
     const t = now(), L = Input.lastTap;
     const dbl = L && t - L.t < TAP_GAP && Math.hypot(e.clientX - L.x, e.clientY - L.y) < 70;
-    Input.touch = { id: e.pointerId, x0: e.clientX, y0: e.clientY, ox: e.clientX, t0: t, mode: dbl ? 'boost' : 'steer', moved: 0, swiped: false };
+    Input.touch = { id: e.pointerId, x0: e.clientX, y0: e.clientY, ox: e.clientX, cx: e.clientX, t0: t, mode: dbl ? 'boost' : 'steer', moved: 0, swiped: false };
     Input.lastTap = null;
     if (dbl) Input.boost = true;
     hint.classList.add('on'); hint.classList.toggle('boost', dbl);
-    hint.style.left = e.clientX + 'px'; hint.style.top = e.clientY + 'px';
+    hint.classList.toggle('simple', Settings.steer === 'simple');
+    if (Settings.steer === 'simple') { hint.style.left = innerWidth / 2 + 'px'; hint.style.top = (innerHeight - 245) + 'px'; }   // a fixed wheel: centre = straight
+    else { hint.style.left = e.clientX + 'px'; hint.style.top = e.clientY + 'px'; }
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
   });
   canvas.addEventListener('pointermove', e => {
@@ -51,8 +53,8 @@ function initInput(canvas) {
       T.swiped = true; T.ox = e.clientX;
       if (dy < 0) Input.hop = true;   // swipe up = hop (swipe down does nothing)
     }
-    const sx = e.clientX - T.ox;
-    knob.style.transform = `translateX(${clamp(sx / STEER_PX, -1, 1) * 34}px)`;
+    const st = Settings.steer === 'simple' ? simpleSteer(e.clientX) : clamp((e.clientX - T.ox) / STEER_PX, -1, 1);
+    knob.style.transform = `translateX(${st * (Settings.steer === 'simple' ? 62 : 34)}px)`;
   });
   const up = e => {
     Input.pointers.delete(e.pointerId);
@@ -73,6 +75,13 @@ function initInput(canvas) {
   canvas.addEventListener('pointermove', e => { if (Input.touch && e.pointerId === Input.touch.id) Input.touch.cx = e.clientX; });
 }
 
+// Simple steering: where your finger is across the screen sets the turn. Near the middle = straight,
+// towards the edge = full lock. Lift your finger and the car straightens up.
+function simpleSteer(x) {
+  const W = innerWidth, d = (x - W / 2) / (W / 2), dead = .08, full = .7;
+  const a = clamp((Math.abs(d) - dead) / (full - dead), 0, 1);
+  return Math.sign(d) * a;
+}
 function readInput(dt) {
   const K = Input.keys, T = Input.touch;
   // keyboard steering ramps in, so quick taps grip and a held key slides
@@ -82,7 +91,10 @@ function readInput(dt) {
   Input.kSteer = ks ? clamp(Input.kSteer + ks * dt * 5, -1, 1) : 0;
   if (ks && Math.sign(Input.kSteer) !== ks) Input.kSteer = ks * .2;
   let ts = 0;
-  if (T && T.cx != null) { const sx = T.cx - T.ox; ts = Math.abs(sx) < 6 ? 0 : clamp(sx / STEER_PX, -1, 1); }
+  if (T && T.cx != null) {
+    if (Settings.steer === 'simple') { ts = simpleSteer(T.cx); $('steerKnob').style.transform = `translateX(${ts * 62}px)`; }
+    else { const sx = T.cx - T.ox; ts = Math.abs(sx) < 6 ? 0 : clamp(sx / STEER_PX, -1, 1); }
+  }
   Input.steer = Input.kSteer || ts;
   const kb = !!(K.ShiftLeft || K.ShiftRight || K.Space);
   Input.boost = (T && T.mode === 'boost') || kb || Input.btnBoost;
@@ -179,7 +191,7 @@ const Player = {
     const autoBack = this.unstuckT > 0;
 
     // ---- Every hard turn at speed slides; the slide ends when you ease off ----
-    const steerAmt = Math.abs(Input.steer), easy = Settings.steer === 'easy';
+    const steerAmt = Math.abs(Input.steer), easy = Settings.steer !== 'drift';   // Simple and Drag never slide
     // Easy steering never slides: the car always goes where you point it
     if (!easy && !this.drifting && grounded && vF > SLIDE_MIN_SPEED && steerAmt > T.slideAt) { this.drifting = true; this.driftT = 0; }
     if (this.drifting) {

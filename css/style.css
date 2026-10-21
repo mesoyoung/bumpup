@@ -390,3 +390,9 @@ body.day #minimap { box-shadow: 0 0 0 2px rgba(255,255,255,.35), 0 6px 24px rgba
 .round-btn.off { color: var(--dim); }
 .round-btn.day { color: var(--gold); }
 #timeBtn:not(.day) { color: #b9c6ff; }
+
+/* Simple steering: a fixed wheel at the bottom, centre = straight */
+@media (pointer: coarse) {
+  .steer-hint.simple { width: 180px; margin-left: -90px; }
+  .steer-hint.simple::before { content: ''; position: absolute; left: 50%; top: 8px; bottom: 8px; width: 2px; margin-left: -1px; background: var(--line); }
+}

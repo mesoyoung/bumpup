@@ -148,6 +148,7 @@ const Game = {
     const touchUI = matchMedia('(pointer: coarse)').matches;
     UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'hold Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
     G.coachUntil = 4; G.redTips = 0; G.coachScan = 0; G.ramTold = false; G.lastBoostAt = 0;
+    $('gSteer').innerHTML = Settings.steer === 'simple' ? '<b>Hold left / right</b> steer' : '<b>Drag</b> steer';
     $('gestures').classList.add('on'); clearTimeout(Game.gt); Game.gt = setTimeout(() => $('gestures').classList.remove('on'), 6000);
   }
   // The landing screen is the live city: your car waits on the centre line while traffic drives past.
@@ -566,11 +567,11 @@ const Game = {
   $('quitBtn').addEventListener('click', () => { Sound.siren(0); Sound.duck(false); toTitle(); });
   $('pauseBtn').addEventListener('click', () => Game.onPauseKey());
   $('steerBtn').addEventListener('click', () => {
-    Settings.steer = Settings.steer === 'easy' ? 'drift' : 'easy'; store.set('steer', Settings.steer);
+    Settings.steer = { simple: 'easy', easy: 'drift', drift: 'simple' }[Settings.steer] || 'simple'; store.set('steer', Settings.steer);
     UI.title(save.best, save.coins, save.paint, save.owned);
     Missions.swapDrift();
     UI.title(save.best, save.coins, save.paint, save.owned);
-    UI.toast(Settings.steer === 'easy' ? 'Easy steering: no slides, goes where you point' : 'Drift steering: every hard turn at speed slides');
+    UI.toast({ simple: 'Simple: hold left or right of the screen to turn', easy: 'Drag: drag from where you touch to turn', drift: 'Drift: drag to turn; hard turns at speed slide' }[Settings.steer]);
   });
   $('muteBtn').addEventListener('click', () => { Sound.setMuted(!Sound.muted); UI.title(save.best, save.coins, save.paint, save.owned); });
   $('paints').addEventListener('click', e => {

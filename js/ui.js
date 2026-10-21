@@ -190,7 +190,7 @@ const UI = {
     const mb = $('muteBtn'), off = Sound.muted;
     mb.innerHTML = ICONS[off ? 'soundOff' : 'soundOn']; mb.classList.toggle('off', off);
     mb.setAttribute('aria-label', off ? 'Sound off: turn on' : 'Sound on: turn off'); mb.title = off ? 'Sound off' : 'Sound on';
-    $('steerBtn').textContent = Settings.steer === 'easy' ? 'Steering: Easy' : 'Steering: Drift';
+    $('steerBtn').textContent = 'Steering: ' + ({ simple: 'Simple', easy: 'Drag', drift: 'Drift' }[Settings.steer] || 'Simple');
   },
   missionCards(list) {
     const scopeTag = { run: 'One run', total: 'Total', best: 'Once' };
