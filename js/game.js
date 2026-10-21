@@ -145,7 +145,8 @@ const Game = {
     UI.show(null);
     Game.state = 'play';
     const touchUI = matchMedia('(pointer: coarse)').matches;
-    UI.banner('Sedan', `Smash people and bins. ${touchUI ? 'Swipe up' : 'Press ↑'} to hop over cars you can't smash yet.`, 'tier');
+    UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'double-tap and hold' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
+    G.coachUntil = 4; G.amberTips = 0; G.redTips = 0; G.coachScan = 0; G.ramTold = false;
     $('gestures').classList.add('on'); clearTimeout(Game.gt); Game.gt = setTimeout(() => $('gestures').classList.remove('on'), 6000);
   }
   // The landing screen is the live city: your car waits on the centre line while traffic drives past.
@@ -225,6 +226,7 @@ const Game = {
     G.counts[k.group] = (G.counts[k.group] || 0) + 1;
     if (k.size >= G.biggestSize) { G.biggestSize = k.size; G.biggest = k.name; }
     if (!tiny) P.fuel = Math.min(P.fuelMax, P.fuel + k.fuel * (obj.golden ? 3 : 1) * (P.boosting ? BOOST_FUEL : 1));
+    if (ram) { coachSeen.rammed++; store.set('coach', coachSeen); }
     if (ram) { P.fuel -= RAM_DAMAGE * Garage.damage; G.shake = Math.max(G.shake, .5); UI.flash('gold'); }
     G.heat += k.pts * (obj instanceof Police ? 3 : 1) * (tiny ? TINY_PTS : 1) / HEAT_TIER[P.tier]; G.lastSmash = G.time;
     // launch it: punted off faster than you're going, flung to the side you clipped, spinning hard
@@ -270,6 +272,39 @@ const Game = {
     const label = (ram ? 'POWER RAM ' : '') + `+${fmt(pts)}` + (gold > 1 ? ' GOLD' : '') + (!tiny && G.combo > 1 ? `  x${G.combo}` : '');
     addScore(pts, x, 2.5 + k.size * .6, z, label, tiny ? 'tiny' : gold > 1 ? 'gold' : ram ? 'ram' : boost > 1 ? 'boosted' : k.size === P.level ? 'big' : '');
     if (ram && P.fuel <= 0) die(`Rammed one ${KINDS[kind].name.toLowerCase()} too many`);
+  }
+
+  // ---------- coaching: the first few times, point out amber (boost through it) and red (steer clear) ----------
+  const coachSeen = Object.assign({ amber: 0, red: 0, ram: 0, rammed: 0 }, store.get('coach', {}));
+  function coach() {
+    const P = Player, touchUI = matchMedia('(pointer: coarse)').matches;
+    if (Ram.on) {
+      if (!G.ramTold && coachSeen.ram < 6) { G.ramTold = true; coachSeen.ram++; store.set('coach', coachSeen); UI.coach('<b>Power Ram!</b> Boosting smashes amber', 'ram', 2); }
+      return;
+    }
+    G.ramTold = false;
+    if (G.time < G.coachUntil || G.time - G.coachScan < .25) return;
+    G.coachScan = G.time;
+    const wantAmber = coachSeen.rammed < 5 && coachSeen.amber < 10 && G.amberTips < 2, wantRed = coachSeen.red < 6 && G.redTips < 1;
+    if (!wantAmber && !wantRed) return;
+    let best = null, bd = 34;
+    const look = (x, z, th) => {
+      if (th === 'smash') return;
+      const dx = x - P.x, dz = z - P.z, d = Math.hypot(dx, dz);
+      if (d > bd || d < 6 || (dx * P.fx + dz * P.fz) / d < .8) return;   // only things right ahead of you
+      if ((th === 'bounce' && wantAmber) || (th === 'wreck' && wantRed)) { best = th; bd = d; }
+    };
+    for (const c of G.traffic) if (c.alive) look(c.x, c.z, threatOf(c.size, P.level));
+    for (const c of G.police) if (c.alive) look(c.x, c.z, threatOf(c.size, P.level));
+    for (const it of World.props) if (it.alive && Math.abs(it.x - P.x) < 34 && Math.abs(it.z - P.z) < 34) look(it.x, it.z, it.batch.threat === 'wreck' ? 'bounce' : it.batch.threat);
+    if (best === 'bounce') {
+      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "double-tap and hold" : "hold Shift"}</span>`, 'amber', 3.2);
+      coachSeen.amber++; G.amberTips++; G.coachUntil = G.time + 9;
+    } else if (best === 'wreck') {
+      UI.coach(`<i class="cr red"></i><span><b>Red</b> wrecks you. Steer round it or ${touchUI ? "swipe up" : "press ↑"} to hop</span>`, 'red', 3.2);
+      coachSeen.red++; G.redTips++; G.coachUntil = G.time + 9;
+    }
+    if (best) store.set('coach', coachSeen);
   }
 
   function bounce(obj, kind, res, mover) {
@@ -485,6 +520,7 @@ const Game = {
         for (const k in World.batches) if (World.batches[k].threat === 'bounce') World.batches[k].ringMat.opacity = o;
       }
       collide();
+      coach();
       if (playing && Player.alive && Player.fuel <= 0 && Player.speed < 1.5) die('Tank ran dry');
       if (G.comboTimer > 0) { G.comboTimer -= dt; if (G.comboTimer <= 0) { G.combo = 0; G.pending = 0; } }
       updateHeat(dt);

@@ -23,7 +23,7 @@ const GEO = {
   ico: new THREE.IcosahedronGeometry(1, 0),
   sphere: new THREE.SphereGeometry(.5, 8, 6),
   octa: new THREE.OctahedronGeometry(1, 0),
-  ring: new THREE.RingGeometry(.7, 1, 40).rotateX(-Math.PI / 2),
+  ring: null,   // built below: a flat ring plus a short glowing wall, so it reads from a low chase camera
   disc: new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2),
   plane: new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
 };
@@ -331,6 +331,28 @@ function pedGroup(shirt, skin) {
   ]);
 }
 
+// Threat ring: a flat band on the ground plus a short wall of light that fades upward.
+// From the low chase camera a flat ring is a thin sliver; the wall is what you actually see.
+GEO.ring = (() => {
+  const flat = new THREE.RingGeometry(.72, 1, 40).rotateX(-Math.PI / 2).toNonIndexed();
+  const wall = new THREE.CylinderGeometry(1, 1, .7, 40, 1, true).translate(0, .35, 0).toNonIndexed();
+  const fu = flat.attributes.uv.array; for (let i = 0; i < fu.length; i += 2) { fu[i] = .5; fu[i + 1] = .02; }   // fully lit
+  const pos = new Float32Array(flat.attributes.position.array.length + wall.attributes.position.array.length);
+  pos.set(flat.attributes.position.array); pos.set(wall.attributes.position.array, flat.attributes.position.array.length);
+  const uv = new Float32Array(fu.length + wall.attributes.uv.array.length);
+  uv.set(fu); uv.set(wall.attributes.uv.array, fu.length);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  g.computeBoundingSphere();
+  return g;
+})();
+const RING_FADE = (() => {   // alpha: solid at the bottom, gone at the top
+  const c = document.createElement('canvas'); c.width = 4; c.height = 64;
+  const x = c.getContext('2d'), gr = x.createLinearGradient(0, 64, 0, 0);
+  gr.addColorStop(0, '#fff'); gr.addColorStop(.25, '#bbb'); gr.addColorStop(1, '#000');
+  x.fillStyle = gr; x.fillRect(0, 0, 4, 64);
+  return new THREE.CanvasTexture(c);
+})();
 // ---------- glow ring textures ----------
 function radialTexture(inner, outer) {
   const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -359,5 +381,5 @@ function threatOf(size, level) {
   return 'wreck';
 }
 function ringMaterial() {
-  return new THREE.MeshBasicMaterial({ color: THREAT.smash, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false });
+  return new THREE.MeshBasicMaterial({ color: THREAT.smash, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false, alphaMap: RING_FADE, side: THREE.DoubleSide });
 }

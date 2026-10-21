@@ -355,3 +355,16 @@ kbd { font-family: var(--body); font-size: 11px; font-weight: 700; padding: 1px 
 #hud .lbl, #hud .pip, #hud .up-label, #hud .unit, #hud .tag { text-shadow: 0 1px 3px rgba(0,0,0,.75); }
 body.day #hud .pip, body.day #hud .up-label, body.day #hud .lbl { color: #e6eaf8; }
 body.day #minimap { box-shadow: 0 0 0 2px rgba(255,255,255,.35), 0 6px 24px rgba(0,0,0,.35); }
+
+/* coaching tips: amber = boost through it, red = steer clear */
+.coach { position: absolute; left: 50%; top: calc(200px + env(safe-area-inset-top, 0px)); width: max-content; box-sizing: border-box; transform: translate(-50%, 8px) scale(.96); display: flex; align-items: center; gap: 10px; max-width: min(90vw, 440px); padding: 10px 16px; border-radius: 12px; background: rgba(8,11,22,.82); border: 2px solid var(--line); font-size: 15px; line-height: 1.3; font-weight: 600; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
+.coach.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.coach b { font-weight: 800; }
+.coach.amber { border-color: var(--bounce); } .coach.amber b { color: var(--bounce); }
+.coach.red { border-color: #ff2e4d; } .coach.red b { color: #ff6f86; }
+.coach.ram { border-color: var(--gold); font-family: var(--display); font-size: 22px; font-style: italic; letter-spacing: .02em; } .coach.ram b { color: var(--gold); }
+.coach .cr { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 4px solid; box-shadow: 0 0 10px currentColor; }
+.coach .cr.amber { color: var(--bounce); border-color: var(--bounce); animation: crPulse .8s ease-in-out infinite alternate; }
+.coach .cr.red { color: #ff2e4d; border-color: #ff2e4d; }
+@keyframes crPulse { to { transform: scale(1.18); } }
+@media (min-width: 641px) { .coach { top: 140px; } }

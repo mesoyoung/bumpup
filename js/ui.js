@@ -130,6 +130,11 @@ const UI = {
     const t = $('toast'); t.textContent = text; t.classList.add('on');
     clearTimeout(this.tt); this.tt = setTimeout(() => t.classList.remove('on'), 1800);
   },
+  coach(html, cls, secs) {
+    const el = $('coach'); el.innerHTML = html; el.className = 'coach ' + cls;
+    void el.offsetWidth; el.classList.add('on');
+    clearTimeout(this.ct); this.ct = setTimeout(() => el.classList.remove('on'), secs * 1000);
+  },
   flash(cls) {
     const f = $('flash'); f.className = 'flash ' + cls; void f.offsetWidth; f.classList.add('on');
   },

@@ -6,7 +6,7 @@
 
 const RING_MATS = {};
 for (const k of Object.keys(THREAT)) {
-  RING_MATS[k] = new THREE.MeshBasicMaterial({ color: THREAT[k], transparent: true, opacity: k === 'smash' || k === 'gold' ? .75 : .5, blending: THREE.AdditiveBlending, depthWrite: false });
+  RING_MATS[k] = new THREE.MeshBasicMaterial({ color: THREAT[k], transparent: true, opacity: k === 'smash' || k === 'gold' ? .75 : .5, blending: THREE.AdditiveBlending, depthWrite: false, alphaMap: RING_FADE, side: THREE.DoubleSide });
 }
 function restyleRings() {
   for (const k of Object.keys(RING_MATS)) { styleRing(RING_MATS[k], k); RING_MATS[k].opacity = Lighting.bright ? .9 : k === 'smash' || k === 'gold' ? .75 : .5; }
@@ -43,7 +43,7 @@ function initPeds(scene) {
   Peds.legs = mk(PED_PARTS.legs, lam(0x2b2d42));
   Peds.torso = mk(PED_PARTS.torso, new THREE.MeshLambertMaterial({ color: 0xffffff }));
   Peds.head = mk(PED_PARTS.head, new THREE.MeshLambertMaterial({ color: 0xffffff }));
-  Peds.ring = new THREE.InstancedMesh(GEO.ring, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .75, blending: THREE.AdditiveBlending, depthWrite: false }), PED_COUNT);
+  Peds.ring = new THREE.InstancedMesh(GEO.ring, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .75, blending: THREE.AdditiveBlending, depthWrite: false, alphaMap: RING_FADE, side: THREE.DoubleSide }), PED_COUNT);
   Peds.ring.frustumCulled = false; scene.add(Peds.ring);
   Peds.partM = ['legs', 'torso', 'head'].map(k => partMatrix(P('box', null, PED_PARTS[k].p, PED_PARTS[k].s)));
   for (let i = 0; i < PED_COUNT; i++) {
