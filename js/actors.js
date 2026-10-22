@@ -138,8 +138,8 @@ class Car {
   constructor(scene, kind) {
     this.scene = scene; this.kind = kind;
     const k = KINDS[kind]; this.size = k.size; this.hl = k.hl; this.hw = k.hw;
-    this.golden = (kind === 'sedan' || kind === 'suv') && Math.random() < GOLDEN_CHANCE * 2;
-    this.color = kind === 'sedan' ? pick(C.cars) : kind === 'suv' ? pick([0x2b2d42, 0xe5e5e5, 0x7d8597, 0x14213d, 0x9e2a2b]) : undefined;
+    this.golden = (kind === 'mini' || kind === 'sedan' || kind === 'suv') && Math.random() < GOLDEN_CHANCE * 2;
+    this.color = kind === 'mini' ? pick([0xff6b6b, 0x4ecdc4, 0xffe66d, 0xa8e6cf, 0xff8fab, 0x9b5de5]) : kind === 'sedan' ? pick(C.cars) : kind === 'suv' ? pick([0x2b2d42, 0xe5e5e5, 0x7d8597, 0x14213d, 0x9e2a2b]) : undefined;
     if (this.golden) this.color = 0xffd23a;
     this.mesh = makeVehicleMesh(kind, this.color, this.golden);
     this.ring = new THREE.Mesh(GEO.ring, RING_MATS.smash);

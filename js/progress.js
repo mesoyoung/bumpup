@@ -46,7 +46,7 @@ const MISSIONS = [
   { id: 'peds',    scope: 'run',   on: 'smash', count: d => d.kind === 'ped' ? 1 : 0,          target: L => 12 + L * 4,         text: n => `Smash ${n} pedestrians in one run` },
   { id: 'bins',    scope: 'total', on: 'smash', count: d => d.kind === 'bin' ? 1 : 0,          target: L => 25 + L * 10,        text: n => `Smash ${n} dustbins` },
   { id: 'lamps',   scope: 'total', on: 'smash', count: d => d.kind === 'lamp' ? 1 : 0,         target: L => 10 + L * 5,         text: n => `Knock down ${n} lamp posts` },
-  { id: 'cars',    scope: 'total', on: 'smash', count: d => d.kind === 'sedan' || d.kind === 'suv' ? 1 : 0, target: L => 8 + L * 4, text: n => `Wreck ${n} cars or SUVs` },
+  { id: 'cars',    scope: 'total', on: 'smash', count: d => d.kind === 'mini' || d.kind === 'sedan' || d.kind === 'suv' ? 1 : 0, target: L => 8 + L * 4, text: n => `Wreck ${n} cars` },
   { id: 'trucks',  scope: 'total', on: 'smash', count: d => d.kind === 'truck' ? 1 : 0,        target: L => 2 + L * 2, min: 3,  text: n => `Flatten ${n} trucks` },
   { id: 'police',  scope: 'total', on: 'smash', count: d => d.police ? 1 : 0,                  target: L => 1 + L,              text: n => `Take out ${n} police vehicles` },
   { id: 'gold',    scope: 'total', on: 'smash', count: d => d.golden ? 1 : 0,                  target: L => 1 + Math.floor(L / 2), text: n => `Smash ${n} gold target${n > 1 ? 's' : ''}` },

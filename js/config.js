@@ -52,6 +52,7 @@ const KINDS = {
   hydrant: { size: 1, ht: 0.8, pts: 25,  fuel: 3,  hl: .3,  hw: .3,  name: 'Hydrant',    group: 'Hydrants' },
   lamp:    { size: 2, ht: 6.5, pts: 40,  fuel: 4,  hl: .3,  hw: .3,  name: 'Lamp post',  group: 'Lamp posts' },
   busstop: { size: 2, ht: 2.6, pts: 60,  fuel: 5,  hl: .8,  hw: 2,   name: 'Bus stop',   group: 'Bus stops' },
+  mini:    { size: 1, ht: 1.4, pts: 45,  fuel: 4,  hl: 1.55,hw: .78, name: 'Mini car',   group: 'Mini cars' },
   sedan:   { size: 2, ht: 1.5, pts: 70,  fuel: 6,  hl: 2.2, hw: 1,   name: 'Sedan',      group: 'Sedans' },
   police:  { size: 2, ht: 1.6, pts: 120, fuel: 8,  hl: 2.2, hw: 1,   name: 'Police car', group: 'Police' },
   suv:     { size: 3, ht: 2.2, pts: 100, fuel: 8,  hl: 2.5, hw: 1.15,name: 'SUV',        group: 'SUVs' },
@@ -69,13 +70,13 @@ const KINDS = {
 // Traffic is spawned relative to the player's size so every tier feels like the SUV:
 // about half prey (green), a third your size + 1 (amber), the rest bigger still (red).
 const TRAFFIC_BANDS = [
-  { band: 'green', w: 50, sizes: [[0, 60], [-1, 40]] },    // size offset from your level, weight
-  { band: 'amber', w: 35, sizes: [[1, 100]] },
-  { band: 'red',   w: 15, sizes: [[2, 75], [3, 25]] },
+  { band: 'green', w: 60, sizes: [[0, 60], [-1, 40]] },    // size offset from your level, weight
+  { band: 'amber', w: 28, sizes: [[1, 100]] },
+  { band: 'red',   w: 12, sizes: [[2, 75], [3, 25]] },
 ];
-const TRAFFIC_BY_SIZE = { 2: ['sedan'], 3: ['suv'], 4: ['truck'], 5: ['bus', 'bus', 'armor'], 6: ['tank'] };
-const TRAFFIC_SPEED = { sedan: 14, suv: 13, truck: 11, bus: 9, armor: 11, tank: 7 };
-const TRAFFIC_COUNT = 42;
+const TRAFFIC_BY_SIZE = { 1: ['mini'], 2: ['sedan'], 3: ['suv'], 4: ['truck'], 5: ['bus', 'bus', 'armor'], 6: ['tank'] };
+const TRAFFIC_SPEED = { mini: 13, sedan: 14, suv: 13, truck: 11, bus: 9, armor: 11, tank: 7 };
+const TRAFFIC_COUNT = 75;           // was 42
 const PED_COUNT = 110;
 const PED_NOTICE = 16;        // how close you get before a pedestrian notices you (m)
 const PED_FREEZE = .4;        // seconds they freeze in panic before running

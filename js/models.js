@@ -75,6 +75,17 @@ function sedanParts(color) {
     ...lights(.6, .7, 2.21, -2.21),
   ];
 }
+// a little city car: the one thing on the road a sedan can smash
+function miniParts(color) {
+  const b = lam(color);
+  return [
+    P('box', b, [0, .5, 0], [1.5, .5, 3.0]),
+    P('box', lam(C.glass), [0, .98, -.1], [1.38, .52, 1.9]),
+    P('box', b, [0, 1.27, -.1], [1.3, .07, 1.7]),
+    ...wheels([[.7, 1.0], [-.7, 1.0], [.7, -1.0], [-.7, -1.0]], .3, .26),
+    ...lights(.48, .56, 1.51, -1.51, [.3, .14, .06]),
+  ];
+}
 function suvParts(color) {
   const b = lam(color);
   return [
@@ -210,7 +221,7 @@ function tankParts() {        // size 6: the only thing a bus should fear
     P('box', lam(0xff2236, 0xff2236, 1), [0, 2.8, -.6], [.3, .1, .3]),
   ];
 }
-const VEHICLE_PARTS = { sedan: sedanParts, suv: suvParts, pickup: pickupParts, truck: truckParts, bus: busParts, police: policeParts, psuv: policeSuvParts, swat: swatParts, riot: riotParts, armor: armorParts, tank: tankParts, food: foodTruckParts };
+const VEHICLE_PARTS = { mini: miniParts, sedan: sedanParts, suv: suvParts, pickup: pickupParts, truck: truckParts, bus: busParts, police: policeParts, psuv: policeSuvParts, swat: swatParts, riot: riotParts, armor: armorParts, tank: tankParts, food: foodTruckParts };
 
 // ---------- paint designs (see PAINTS in config.js) ----------
 // A fake city to reflect in chrome paint: bright sky above, dark road below, and a horizon of
