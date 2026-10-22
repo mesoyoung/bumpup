@@ -137,7 +137,7 @@ const Game = {
       counts: {}, upgrades: [{ tier: 0, time: 0 }], time: 0, heat: 0, stars: 0, lastSmash: 0,
       shake: 0, kick: 0, fovKick: 0, hitPause: 0, slow: 0, deathReason: '', dyingT: 0, respawnQueue: [], lastBlock: 0,
     });
-    Ram.on = false;
+    Ram.on = false; G.tutor = null; Player.noDrain = false; $('tutor').hidden = true;
     resetWorld();
     Missions.runStart();
     setThreatAll(1);
@@ -145,11 +145,46 @@ const Game = {
     UI.clearFloats();
     UI.show(null);
     Game.state = 'play';
+    G.coachUntil = 4; G.redTips = 0; G.coachScan = 0; G.ramTold = false; G.lastBoostAt = 0;
+    if (!store.get('tutorDone', false)) tutorStart(); else runIntro();
+  }
+  function runIntro() {
     const touchUI = matchMedia('(pointer: coarse)').matches;
     UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'tap Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
-    G.coachUntil = 4; G.redTips = 0; G.coachScan = 0; G.ramTold = false; G.lastBoostAt = 0;
+    G.coachUntil = G.time + 4;
     $('gSteer').innerHTML = Settings.steer === 'simple' ? '<b>Hold left / right</b> steer' : '<b>Drag</b> steer';
     $('gestures').classList.add('on'); clearTimeout(Game.gt); Game.gt = setTimeout(() => $('gestures').classList.remove('on'), 6000);
+  }
+
+  // ---------- first-run tutorial: turn left, turn right, then off you go ----------
+  // The run is already going underneath; while it's up your tank doesn't drain and nothing can wreck you.
+  function tutorStart() {
+    G.tutor = { step: 'left', held: 0 }; Player.noDrain = true;
+    tutorShow();
+  }
+  function tutorShow() {
+    const touchUI = matchMedia('(pointer: coarse)').matches, s = G.tutor.step, el = $('tutor');
+    const simple = Settings.steer === 'simple';
+    const how = {
+      left: touchUI ? (simple ? 'Hold your finger on the <b>left side</b> of the screen' : 'Touch and <b>drag left</b>') : 'Hold <kbd>←</kbd>',
+      right: touchUI ? (simple ? 'Now hold the <b>right side</b>' : 'Now touch and <b>drag right</b>') : 'Now hold <kbd>→</kbd>',
+    }[s];
+    el.hidden = false; el.className = 'tutor ' + s + (touchUI && simple ? ' zones' : '');
+    $('tutorBig').textContent = s === 'left' ? 'Turn left' : 'Turn right';
+    $('tutorSmall').innerHTML = how;
+  }
+  function tutorUpdate(dt) {
+    const T = G.tutor; if (!T || T.step === 'done') return;
+    const want = T.step === 'left' ? -1 : 1;
+    if (Input.steer * want > .35) T.held += dt; else T.held = Math.max(0, T.held - dt * .5);
+    $('tutorFill').style.transform = `scaleX(${clamp(T.held / .8, 0, 1)})`;
+    if (T.held < .8) return;
+    Sound.star(); T.held = 0;
+    if (T.step === 'left') { T.step = 'right'; tutorShow(); return; }
+    T.step = 'done'; $('tutor').hidden = true; Player.noDrain = false; G.tutor = null;
+    store.set('tutorDone', true);
+    UI.banner('Nice driving!', 'Now smash anything with a green ring.', 'tier');
+    setTimeout(() => { if (Game.state === 'play') runIntro(); }, 2400);
   }
   // The landing screen is the live city: your car waits on the centre line while traffic drives past.
   function parkCar() {
@@ -305,7 +340,7 @@ const Game = {
       UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "tap the Boost button" : "hold Shift"}</span>`, 'amber', 5.5);
       coachSeen.amber++; G.coachUntil = G.time + 10;
     } else if (best === 'wreck') {
-      UI.coach(`<i class="cr red"></i><span><b>Red</b> wrecks you. Steer round it or ${touchUI ? "swipe up" : "press ↑"} to hop</span>`, 'red', 5.5);
+      UI.coach(`<i class="cr red"></i><span><b>Red</b> wrecks you. Steer round it</span>`, 'red', 5.5);
       coachSeen.red++; G.redTips++; G.coachUntil = G.time + 9;
     }
     if (best) store.set('coach', coachSeen);
@@ -318,7 +353,7 @@ const Game = {
     if (into > 0) { P.vx += res.nx * into * 1.5; P.vz += res.nz * into * 1.5; }
     if (mover) { mover.x -= res.nx * .4; mover.z -= res.nz * .4; mover.v *= .3; }
     if (P.invuln > 0) return;
-    P.scaleSpeed(.45); P.drifting = false; P.fuel -= BOUNCE_DAMAGE * Garage.damage; P.invuln = .9;
+    P.scaleSpeed(.45); P.drifting = false; if (!G.tutor) P.fuel -= BOUNCE_DAMAGE * Garage.damage; P.invuln = .9;
     G.shake = Math.max(G.shake, .5); Sound.bonk(); UI.flash('red');
     emit(P.x + res.nx * -1, 1.2, P.z - res.nz, 14, [0xffd23a, 0xffffff, 0xff7b00], { speed: 8, up: 6, size: .18 });
     const need = TIERS.find(t => TIERS.indexOf(t) + 1 >= KINDS[kind].size);
@@ -328,7 +363,7 @@ const Game = {
   function onWall(into) {
     const P = Player;
     if (P.invuln > 0 || into < 12) { G.shake = Math.max(G.shake, .15); Sound.bonk(); return; }
-    P.fuel -= Math.min(BOUNCE_DAMAGE, into * 1.1) * Garage.damage; P.invuln = .7;
+    if (!G.tutor) P.fuel -= Math.min(BOUNCE_DAMAGE, into * 1.1) * Garage.damage; P.invuln = .7;
     G.shake = Math.max(G.shake, .45); Sound.bonk(); UI.flash('red');
     emit(P.x + P.fx * P.half, 1, P.z + P.fz * P.half, 12, [0xffd23a, 0xffffff], { speed: 7, up: 5, size: .16 });
     if (P.fuel <= 0) die('Wrecked against a building');
@@ -343,6 +378,7 @@ const Game = {
       if (!res) continue;
       let th = threatOf(KINDS[kind].size, P.level);
       if (th === 'wreck' && type === 'prop') th = 'bounce'; // street furniture never kills outright
+      if (th === 'wreck' && G.tutor) th = 'bounce';          // nothing wrecks you during the tutorial
       if (th === 'bounce' && Ram.on && threatOf(KINDS[kind].size, P.level) === 'bounce') th = 'smash'; // Power Ram
       if (th === 'smash') smash(obj, type, kind, ox, oz);
       else if (th === 'bounce') bounce(obj, kind, res, mover);
@@ -376,9 +412,7 @@ const Game = {
       const pts = Math.round(v * 45) * (v > 2 ? 2 : 1);
       Sound.combo(4);
       addScore(pts, P.x, 3, P.z, `DRIFT ${v.toFixed(1)}s +${pts}`, 'drift');
-    } else if (type === 'hop') {
-      Sound.hop();
-      emit(P.x, .2, P.z, 8, [0x9aa0b5, 0xcfd3e0], { speed: 3, up: 1.5, size: .25, life: .4, grav: 2 });
+
     } else if (type === 'launch') {
       Sound.nearMiss();
     } else if (type === 'land') {
@@ -402,7 +436,7 @@ const Game = {
       if (!c.alive || P.y <= KINDS[c.kind].ht || G.time - (c.hopAt || -9) < 2) continue;
       if (Math.abs(c.x - P.x) > 12 || Math.abs(c.z - P.z) > 12) continue;
       if (P.circles().some(q => circleOBB(q.x, q.z, q.r, c.x, c.z, c.h, c.hl, c.hw))) {
-        c.hopAt = G.time; addScore(30, c.x, 4, c.z, 'HOP OVER +30', 'air'); Missions.event('hopover');
+        c.hopAt = G.time; addScore(30, c.x, 4, c.z, 'JUMPED IT +30', 'air');
       }
     }
     for (const c of G.traffic) {
@@ -524,7 +558,8 @@ const Game = {
         for (const k in World.batches) if (World.batches[k].threat === 'bounce') World.batches[k].ringMat.opacity = o;
       }
       collide();
-      coach();
+      tutorUpdate(dt);
+      if (!G.tutor) coach();
       if (playing && Player.alive && Player.fuel <= 0 && Player.speed < 1.5) die('Tank ran dry');
       if (G.comboTimer > 0) { G.comboTimer -= dt; if (G.comboTimer <= 0) { G.combo = 0; G.pending = 0; } }
       updateHeat(dt);
@@ -601,6 +636,7 @@ const Game = {
     if (id !== save.map) loadMap(id);
     UI.closeMaps(); startRun();
   }));
+  $('tutorAgain').addEventListener('click', () => { store.set('tutorDone', false); UI.closeSheet(); UI.toast('The tutorial will play on your next drive'); });
   document.querySelectorAll('.nav-btn[data-sheet]').forEach(b => b.addEventListener('click', () => UI.openSheet(b.dataset.sheet)));
   $('sheetClose').addEventListener('click', () => UI.closeSheet());
   $('sheetWrap').addEventListener('click', e => { if (e.target === $('sheetWrap')) UI.closeSheet(); });

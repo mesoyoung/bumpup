@@ -11,14 +11,21 @@ const UPGRADES = [
   { id: 'fuel',   name: 'Fuel tank',    desc: l => `Tank holds ${100 + l * 15}`,                        unit: 'more fuel' },
   { id: 'armour', name: 'Armour',       desc: l => `Bumps drain ${Math.round(100 - l * 10)}% as much tank`,    unit: 'less damage' },
   { id: 'nitro',  name: 'Nitro',        desc: l => l ? `Boost ${l * 4}% faster, burns ${l * 10}% less` : 'Standard boost',     unit: 'faster boost' },
-  { id: 'spring', name: 'Springs',      desc: l => l ? `Hops ${Math.round(((1 + l * .06) ** 2 - 1) * 100)}% higher` : 'Standard hops', unit: 'higher hops' },
   { id: 'combo',  name: 'Combo timer',  desc: l => `Combos last ${(COMBO_WINDOW + l * .3).toFixed(1)}s`, unit: 'longer combos' },
 ];
 const UPGRADE_COST = [150, 400, 800, 1400, 2200];   // cost of level 1..5
 const UPGRADE_MAX = UPGRADE_COST.length;
 
+// Hop was removed: refund any coins spent on the old Springs upgrade, once
+(() => {
+  const lv = store.get('upgrades', {});
+  if (lv.spring > 0) {
+    const refund = UPGRADE_COST.slice(0, lv.spring).reduce((a, b) => a + b, 0);
+    store.set('coins', store.get('coins', 0) + refund); delete lv.spring; store.set('upgrades', lv);
+  }
+})();
 const Garage = {
-  levels: Object.assign({ fuel: 0, armour: 0, nitro: 0, spring: 0, combo: 0 }, store.get('upgrades', {})),
+  levels: Object.assign({ fuel: 0, armour: 0, nitro: 0, combo: 0 }, store.get('upgrades', {})),
   level(id) { return this.levels[id] || 0; },
   cost(id) { const l = this.level(id); return l >= UPGRADE_MAX ? null : UPGRADE_COST[l]; },
   buy(id) { this.levels[id] = this.level(id) + 1; store.set('upgrades', this.levels); },
@@ -27,7 +34,6 @@ const Garage = {
   get damage() { return 1 - this.level('armour') * .1; },
   get boostSpeed() { return 1 + this.level('nitro') * .04; },
   get boostDrain() { return 1 - this.level('nitro') * .1; },
-  get hop() { return 1 + this.level('spring') * .06; },
   get comboWindow() { return COMBO_WINDOW + this.level('combo') * .3; },
 };
 
@@ -51,7 +57,6 @@ const MISSIONS = [
   { id: 'combo',   scope: 'best',  on: 'combo', count: d => d.combo,                           target: L => Math.min(10, 3 + L),  text: n => `Reach a x${n} combo` },
   { id: 'drift',   scope: 'best',  on: 'drift', count: d => d.time,                            target: L => Math.min(5, 1.5 + L * .5), text: n => `Slide for ${n.toFixed(1)}s in one go` },
   { id: 'air',     scope: 'best',  on: 'air',   count: d => d.time,                            target: L => Math.min(2, .8 + L * .2),  text: n => `Get ${n.toFixed(1)}s of air off a ramp` },
-  { id: 'hopover', scope: 'total', on: 'hopover', count: () => 1,                              target: L => 2 + L * 2,          text: n => `Hop over ${n} vehicles` },
   { id: 'dash',    scope: 'run',   on: 'dash',  count: () => 1,                                target: L => 3 + L * 2,          text: n => `Crazy Dash ${n} times in one run` },
   { id: 'near',    scope: 'run',   on: 'near',  count: () => 1,                                target: L => 4 + L * 2,          text: n => `Get ${n} near misses in one run` },
   { id: 'food',    scope: 'run',   on: 'food',  count: () => 1,                                target: L => Math.min(4, 1 + Math.floor(L / 2)), text: n => `Visit ${n} food truck${n > 1 ? 's' : ''} in one run` },
@@ -67,8 +72,10 @@ const Missions = {
   def(m) { return MISSIONS.find(d => d.id === m.id); },
   label(m) { return this.def(m).text(m.target); },
   init() {
-    if (!this.state || !this.state.active || this.state.active.some(m => !this.def(m))) this.state = { level: 1, active: [] };
+    if (!this.state || !this.state.active) this.state = { level: 1, active: [] };
     if (!this.state.active.length) this.drawSet();
+    // a mission that no longer exists (e.g. hop-overs) is swapped for a new one, keeping your level
+    this.state.active.forEach((m, i) => { if (!this.def(m)) this.state.active[i] = this.freshMission(i); });
     this.save();
   },
   save() { store.set('missions', this.state); },
@@ -95,6 +102,12 @@ const Missions = {
     if (!opts.length) return;
     const d = pick(opts); A[i] = { id: d.id, target: d.target(L), progress: 0, done: false };
     this.save();
+  },
+  freshMission(i) {
+    const A = this.state.active, L = this.state.level, others = A.filter((m, k) => k !== i && this.def(m));
+    const opts = this.pool(L).filter(d => !others.some(o => o.id === d.id) && !(d.scope === 'best' && others.some(o => this.def(o).scope === 'best')));
+    const d = pick(opts.length ? opts : this.pool(L));
+    return { id: d.id, target: d.target(L), progress: 0, done: false };
   },
   runStart() {
     this.swapDrift();

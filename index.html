@@ -46,7 +46,7 @@
 
   <div id="gestures" class="gestures">
     <span id="gSteer"><b>Drag</b> steer</span><span><b>Tap Boost</b> to boost, hold for more</span>
-    <span><b>Swipe up</b> hop</span><span><b>II button</b> pause</span>
+    <span><b>II button</b> pause</span>
   </div>
   <div id="steerHint" class="steer-hint"><span id="steerKnob"></span></div>
   <button id="boostBtn" class="boost-btn" aria-label="Hold to boost"><span>Boost</span></button>
@@ -54,6 +54,10 @@
   <div id="missionPop" class="mission-pop"><span class="mp-head">Mission complete</span><span id="mpText"></span><b id="mpReward"></b></div>
   <div id="banner" class="banner"><div id="bannerBig"></div><div id="bannerSmall"></div></div>
   <div id="toast" class="toast"></div>
+  <div id="tutor" class="tutor" hidden>
+    <div class="tz tz-left"><span class="tz-arrow">‹</span></div><div class="tz tz-right"><span class="tz-arrow">›</span></div>
+    <div class="tmsg"><b id="tutorBig">Turn left</b><span id="tutorSmall"></span><span class="tbar"><span id="tutorFill"></span></span></div>
+  </div>
   <div id="coach" class="coach" role="status"></div>
 </div>
 <div id="foodArrow" class="food-arrow" aria-hidden="true"><span id="foodArrowIcon" class="fa-icon"></span><span class="fa-label">Food truck <b id="foodArrowDist">0 m</b></span></div>
@@ -126,17 +130,16 @@
       <div class="keys">
         <span><kbd>←</kbd><kbd>→</kbd> steer</span>
         <span><kbd>Shift</kbd> / <kbd>Space</kbd> boost</span>
-        <span><kbd>↑</kbd> hop</span>
         <span><kbd>P</kbd> pause</span>
       </div>
       <div class="touch-note">
         <span><b>Hold</b> left or right of the screen to steer (Simple), or <b>drag</b> (Drag and Drift steering)</span>
         <span><b>Tap the Boost button</b> for a burst of boost, or hold it to keep going</span>
-        <span><b>Swipe up</b> to hop</span>
         <span><b>II button</b> to pause</span>
       </div>
-      <p class="tricks"><b>Slides:</b> with Drift steering, turn hard at speed and the car slides (Simple and Drag steering never slide); the longer the slide, the bigger the boost when you straighten up. <b>Tank:</b> one bar for fuel and damage. It drains as you drive and when you bump things; smashing refills it, and so do food trucks. <b>Crazy Dash:</b> boost from a standstill. <b>Boost</b> for double points and a fuller refill; while boosting at speed you <b>Power Ram</b> through amber objects for a little tank. <b>Hop</b> over cars you can't smash yet. <b>Hunt your size:</b> things far smaller than you barely score. Orange ramps launch you for air points.</p>
+      <p class="tricks"><b>Slides:</b> with Drift steering, turn hard at speed and the car slides (Simple and Drag steering never slide); the longer the slide, the bigger the boost when you straighten up. <b>Tank:</b> one bar for fuel and damage. It drains as you drive and when you bump things; smashing refills it, and so do food trucks. <b>Crazy Dash:</b> boost from a standstill. <b>Boost</b> for double points and a fuller refill; while boosting at speed you <b>Power Ram</b> through amber objects for a little tank. <b>Hunt your size:</b> things far smaller than you barely score. Orange ramps launch you for air points.</p>
       <p class="credits">Engine and tyre recordings by freesound_community and olenchic (Pixabay).</p>
+      <button id="tutorAgain" class="btn small-btn">Play the tutorial again</button>
       <p class="ladder">Sedan → SUV at 2,000 → Truck at 15,000 → Bus at 45,000</p>
     </div>
     </div>

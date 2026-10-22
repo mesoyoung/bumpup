@@ -9,12 +9,10 @@ const Input = { steer: 0, boost: false, btnBoost: false, brake: false, hop: fals
 // ---------- One-finger touch gestures ----------
 //   drag left/right ............ steer (hard drag at speed = slide)
 //   double-tap and hold ........ boost (release to stop)
-//   swipe up ................... hop
 //   more fingers ............... the newest finger steers; lift it and the one still down takes over
 function initInput(canvas) {
   const K = Input.keys;
   addEventListener('keydown', e => {
-    if (!K[e.code] && (e.code === 'ArrowUp' || e.code === 'KeyW')) Input.hop = true;
     K[e.code] = true;
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) e.preventDefault();
     if ((e.code === 'Escape' || e.code === 'KeyP') && Game.onPauseKey) Game.onPauseKey();
@@ -37,10 +35,10 @@ function initInput(canvas) {
     Input.touch = { id: e.pointerId, x0: e.clientX, y0: e.clientY, ox: e.clientX, cx: e.clientX, t0: t, mode: dbl ? 'boost' : 'steer', moved: 0, swiped: false };
     Input.lastTap = null;
     if (dbl) Input.boost = true;
-    hint.classList.add('on'); hint.classList.toggle('boost', dbl);
-    hint.classList.toggle('simple', Settings.steer === 'simple');
-    if (Settings.steer === 'simple') { hint.style.left = innerWidth / 2 + 'px'; hint.style.top = (innerHeight - 245) + 'px'; }   // a fixed wheel: centre = straight
-    else { hint.style.left = e.clientX + 'px'; hint.style.top = e.clientY + 'px'; }
+    if (Settings.steer !== 'simple') {   // Drag / Drift: a little guide under your finger (Simple needs none)
+      hint.classList.add('on'); hint.classList.toggle('boost', dbl);
+      hint.style.left = e.clientX + 'px'; hint.style.top = e.clientY + 'px';
+    }
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
   });
   canvas.addEventListener('pointermove', e => {
@@ -48,12 +46,8 @@ function initInput(canvas) {
     const dx = e.clientX - T.x0, dy = e.clientY - T.y0, age = now() - T.t0;
     T.moved = Math.max(T.moved, Math.hypot(dx, dy));
     // a quick, mostly-vertical flick is a swipe; steering restarts from where the finger is
-    if (!T.swiped && age < SWIPE_TIME && Math.abs(dy) > SWIPE_PX && Math.abs(dy) > Math.abs(dx) * 1.4) {
-      T.swiped = true; T.ox = e.clientX;
-      if (dy < 0) Input.hop = true;   // swipe up = hop (swipe down does nothing)
-    }
-    const st = Settings.steer === 'simple' ? simpleSteer(e.clientX) : clamp((e.clientX - T.ox) / STEER_PX, -1, 1);
-    knob.style.transform = `translateX(${st * (Settings.steer === 'simple' ? 62 : 34)}px)`;
+    if (!T.swiped && age < SWIPE_TIME && Math.abs(dy) > SWIPE_PX && Math.abs(dy) > Math.abs(dx) * 1.4) { T.swiped = true; T.ox = e.clientX; }
+    if (Settings.steer !== 'simple') knob.style.transform = `translateX(${clamp((e.clientX - T.ox) / STEER_PX, -1, 1) * 34}px)`;
   });
   const up = e => {
     Input.pointers.delete(e.pointerId);
@@ -67,7 +61,7 @@ function initInput(canvas) {
     if (rest.length) {
       const [id, x] = rest[rest.length - 1];
       Input.touch = { id, x0: x, y0: 0, ox: x, cx: x, t0: t - 1, mode: 'steer', moved: 99, swiped: true };
-      hint.classList.add('on');
+      if (Settings.steer !== 'simple') hint.classList.add('on');
     }
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
@@ -102,7 +96,7 @@ function readInput(dt) {
   if (ks && Math.sign(Input.kSteer) !== ks) Input.kSteer = ks * .2;
   let ts = 0;
   if (T && T.cx != null) {
-    if (Settings.steer === 'simple') { ts = simpleSteer(T.cx); $('steerKnob').style.transform = `translateX(${ts * 62}px)`; }
+    if (Settings.steer === 'simple') ts = simpleSteer(T.cx);
     else { const sx = T.cx - T.ox; ts = Math.abs(sx) < 6 ? 0 : clamp(sx / STEER_PX, -1, 1); }
   }
   Input.steer = Input.kSteer || ts;
@@ -190,10 +184,6 @@ const Player = {
     }
     this.brakeT = Input.brake ? this.brakeT + dt : 0;
 
-    // ---- Hop: jump over things you can't smash yet ----
-    this.hopCD = Math.max(0, (this.hopCD || 0) - dt);
-    if (Input.hop && grounded && this.hopCD <= 0) { this.vy = T.hopV * Garage.hop; this.hopCD = .55; onTrick('hop'); }
-    Input.hop = false;
 
     // ---- Unstuck: nose against a wall for a moment -> back off and swing round ----
     if (grounded && !Input.brake && !outOfFuel && Math.abs(vF) < 3 && this.unstuckT <= 0) this.stuckT = (this.stuckT || 0) + dt; else this.stuckT = 0;
@@ -297,7 +287,7 @@ const Player = {
       }
     }
 
-    this.fuel = Math.max(0, this.fuel - (FUEL_DRAIN * (1 + FUEL_TIER * this.tier) + (this.boosting ? BOOST_DRAIN * Garage.boostDrain : 0)) * dt);
+    if (!this.noDrain) this.fuel = Math.max(0, this.fuel - (FUEL_DRAIN * (1 + FUEL_TIER * this.tier) + (this.boosting ? BOOST_DRAIN * Garage.boostDrain : 0)) * dt);
     this.invuln = Math.max(0, this.invuln - dt);
     this.dashT = Math.max(0, this.dashT - dt);
 
