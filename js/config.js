@@ -41,7 +41,9 @@ const RAMP_COUNT = 22;
 const TAP_GAP = .26;           // max seconds between taps for a double-tap
 const SWIPE_PX = 38;           // vertical movement that counts as a swipe
 const SWIPE_TIME = .32;        // a swipe must happen this soon after touching (s)
-const STEER_PX = 55;           // finger drag for full steering lock
+const STEER_PX = 55;           // finger drag for full steering lock (Drag / Drift steering)
+const STEER_START = .15;       // Simple steering: how hard a fresh press turns...
+const STEER_RAMP = .7;         // ...and how many seconds of holding it takes to reach full lock
 
 // ---- Smashable objects catalogue ----
 // size = smash level needed. hl/hw = half length/width of the hit box.

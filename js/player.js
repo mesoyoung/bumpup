@@ -4,7 +4,7 @@
 // air), growing between tiers, and keyboard / touch input.
 // ============================================================
 
-const Input = { steer: 0, boost: false, btnBoost: false, brake: false, hop: false, keys: {}, kSteer: 0, touch: null, lastTap: null, pointers: new Map() };   // pointers: every finger on the screen, id -> last x
+const Input = { steer: 0, tSteer: 0, boost: false, btnBoost: false, brake: false, hop: false, keys: {}, kSteer: 0, touch: null, lastTap: null, pointers: new Map() };   // pointers: every finger on the screen, id -> last x
 
 // ---------- One-finger touch gestures ----------
 //   drag left/right ............ steer (hard drag at speed = slide)
@@ -79,13 +79,9 @@ function initInput(canvas) {
   });
 }
 
-// Simple steering: where your finger is across the screen sets the turn. Near the middle = straight,
-// towards the edge = full lock. Lift your finger and the car straightens up.
-function simpleSteer(x) {
-  const W = innerWidth, d = (x - W / 2) / (W / 2), dead = .08, full = .7;
-  const a = clamp((Math.abs(d) - dead) / (full - dead), 0, 1);
-  return Math.sign(d) * a;
-}
+// Simple steering: which half of the screen you're holding sets the direction; how LONG you've been
+// holding sets how hard it turns. A quick tap nudges, a long press turns hard. Lift and it straightens.
+function simpleSide(x) { const d = (x - innerWidth / 2) / (innerWidth / 2); return Math.abs(d) < .04 ? 0 : Math.sign(d); }
 function readInput(dt) {
   const K = Input.keys, T = Input.touch;
   // keyboard steering ramps in, so quick taps grip and a held key slides
@@ -96,9 +92,15 @@ function readInput(dt) {
   if (ks && Math.sign(Input.kSteer) !== ks) Input.kSteer = ks * .2;
   let ts = 0;
   if (T && T.cx != null) {
-    if (Settings.steer === 'simple') ts = simpleSteer(T.cx);
-    else { const sx = T.cx - T.ox; ts = Math.abs(sx) < 6 ? 0 : clamp(sx / STEER_PX, -1, 1); }
+    if (Settings.steer === 'simple') {
+      const side = simpleSide(T.cx);
+      if (!side) Input.tSteer = 0;
+      else if (Math.sign(Input.tSteer) !== side) Input.tSteer = side * STEER_START;   // new press, or slid to the other side
+      else Input.tSteer = clamp(Input.tSteer + side * dt * (1 - STEER_START) / STEER_RAMP, -1, 1);
+      ts = Input.tSteer;
+    } else { const sx = T.cx - T.ox; ts = Math.abs(sx) < 6 ? 0 : clamp(sx / STEER_PX, -1, 1); }
   }
+  if (!T) Input.tSteer = 0;
   Input.steer = Input.kSteer || ts;
   const kb = !!(K.ShiftLeft || K.ShiftRight || K.Space);
   Input.boost = (T && T.mode === 'boost') || kb || Input.btnBoost || Input.btnTap;
