@@ -152,8 +152,6 @@ const Game = {
     const touchUI = matchMedia('(pointer: coarse)').matches;
     UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'tap Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
     G.coachUntil = G.time + 4;
-    $('gSteer').innerHTML = Settings.steer === 'simple' ? '<b>Hold left / right</b> steer' : '<b>Drag</b> steer';
-    $('gestures').classList.add('on'); clearTimeout(Game.gt); Game.gt = setTimeout(() => $('gestures').classList.remove('on'), 6000);
   }
 
   // ---------- first-run tutorial: turn left, turn right, then off you go ----------
