@@ -44,7 +44,7 @@ const Game = {
   // ---------- spawning ----------
   function spawnTraffic(minDist) {
     const car = new Car(scene, pickTrafficKind(Player.level || 1));
-    const spot = randomLaneSpot(Player.x, Player.z, minDist);
+    const spot = laneSpotRing(Player, minDist, TRAFFIC_RADIUS) || randomLaneSpot(Player.x, Player.z, minDist);
     if (!spot) { car.remove(); return; }
     car.place(spot); car.setThreat(Player.level || 1);
     G.traffic.push(car);
@@ -55,6 +55,17 @@ const Game = {
     const spot = (Math.random() < .5 && laneSpotAhead(Player, 70, 130)) || randomLaneSpot(Player.x, Player.z, 90);
     if (!spot) { p.remove(); return; }
     p.place(spot); p.setThreat(Player.level); G.police.push(p);
+  }
+  // Traffic stays around you: cars that wander more than TRAFFIC_RADIUS away are moved back into
+  // a ring around you (out past the near streets), so the roads near you stay busy wherever you go.
+  function recycleTraffic(t) {
+    if (t - (G.recycleAt || 0) < .5) return; G.recycleAt = t;
+    const P = Player;
+    for (const c of G.traffic) {
+      if (c.parked || !c.alive || Math.hypot(c.x - P.x, c.z - P.z) < TRAFFIC_RADIUS) continue;
+      const spot = (Math.random() < .6 && laneSpotAhead(P, 95, TRAFFIC_RADIUS - 10)) || laneSpotRing(P, 95, TRAFFIC_RADIUS - 10);
+      if (spot) c.place(spot);
+    }
   }
   function setThreatAll(level) {
     for (const k in World.batches) World.batches[k].setThreat(level);
@@ -563,6 +574,7 @@ const Game = {
       updateHeat(dt);
       // respawn smashed props and cars away from the player
       for (const it of World.props) if (!it.alive && !it.locked && t > it.respawnAt && Math.hypot(it.x - Player.x, it.z - Player.z) > 70) { it.alive = true; it.batch.show(it, true); }
+      recycleTraffic(t);
       G.respawnQueue = (G.respawnQueue || []).filter(at => { if (t > at) { spawnTraffic(90); return false; } return true; });
     }
     if (dying) { G.dyingT -= dt; if (G.dyingT <= 0) gameOver(); }

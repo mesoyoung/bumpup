@@ -49,7 +49,7 @@ class PropBatch {
     // trees get a canopy-sized ring so it isn't hidden under the leaves
     const rr = this.kind === 'tree' ? 2.1 : 0;
     const rs = new THREE.Matrix4().makeScale(Math.max(it.hw + .55, rr), 1, Math.max(it.hl + .55, rr)).setPosition(0, .05, 0);
-    this.ring.setMatrixAt(it.idx, on ? m.multiplyMatrices(base, rs) : zero);
+    this.ring.setMatrixAt(it.idx, on && this.kind !== 'bin' ? m.multiplyMatrices(base, rs) : zero);   // bins: no ring needed
     this.ring.instanceMatrix.needsUpdate = true;
     if (this.glow) {
       const gs = new THREE.Matrix4().makeScale(9, 1, 9).setPosition(0, .06, 1.6);
@@ -303,8 +303,6 @@ function buildProps(scene) {
       for (let k = 0; k < 20 && pushOutOfBuildings(x, z, 6); k++) { x += rand(-8, 8); z += rand(-8, 8); }
       World.foodSpots.push({ x, z, rot: rand(0, 6.28), zone: a * FOOD_GRID + b });
     }
-    // Lone signposts out in the open (they appear once you can knock them over)
-    for (let k = 0; k < 70; k++) { const x = rand(0, SIZE), z = rand(0, SIZE); if (!pushOutOfBuildings(x, z, 2)) put('lamp', x, z, rand(0, 6.28), 1); }
   } else {
   // Food truck bays: the city is split into an even FOOD_GRID x FOOD_GRID grid of zones, and each
     // zone gets one bay on the road side closest to its centre, so trucks are spread out evenly.
@@ -332,22 +330,12 @@ function buildProps(scene) {
       const lampRot = axis === 'x' ? (side > 0 ? Math.PI : 0) : (side > 0 ? -Math.PI / 2 : Math.PI / 2);
       // Some sides keep a parking bay free in the middle for a food truck
       const bay = bays.has(`${line},${s},${side},${axis}`);
-      for (const f of bay ? [.25, .75] : [.25, .5, .75]) { const [x, z] = at(CELL * f, RW + .8); put('lamp', x, z, lampRot, f === .75 ? 0 : 1); }
+      { const [x, z] = at(CELL * .75, RW + .8); put('lamp', x, z, lampRot, 0); }   // one lamp per side, the same at every size
       if (bay) { const [x, z] = at(CELL * .5, RW + 1.3); World.foodSpots.push({ x, z, rot: axis === 'x' ? Math.PI / 2 : 0, zone: bays.get(`${line},${s},${side},${axis}`) }); continue; }
       if (stops < 50 && Math.random() < .14) { const [x, z] = at(CELL * .375, SW - 1.4); put('busstop', x, z, lampRot, 1); stops++; }
       else if (Math.random() < .75) { const [x, z] = at(CELL * rand(.35, .4), SW - .8); put('bin', x, z, 0); }
       if (Math.random() < .4) { const [x, z] = at(CELL * .62, RW + .9); put('hydrant', x, z, 0); }
       else if (Math.random() < .35) { const [x, z] = at(CELL * .63, SW - .9); put('tree', x, z, 0, 2); }
-    }
-    // Roadworks: lines of cones along the lane edge
-    for (let k = 0; k < 40; k++) {
-      const line = 1 + Math.floor(Math.random() * (N - 1)), s = Math.floor(Math.random() * N), side = pick([-1, 1]);
-      const axis = pick(['x', 'z']), t0 = rand(SW + 2, CELL - SW - 12);
-      for (let c = 0; c < 4; c++) {
-        const t = t0 + c * 3.2;
-        const [x, z] = axis === 'x' ? [s * CELL + t, line * CELL + side * (RW - .9)] : [line * CELL + side * (RW - .9), s * CELL + t];
-        put('cone', x, z, 0);
-      }
     }
   }
   // Trees and loose props inside the blocks (parks, plazas, beach, yards)
@@ -449,6 +437,14 @@ function applyPropTier(tier) {
 }
 
 // A lane spot between min and max metres ahead of the player (roughly in their direction of travel)
+// a lane spot between min and max metres from the player, in any direction
+function laneSpotRing(P, min, max) {
+  for (let tries = 0; tries < 80; tries++) {
+    const s = randomLaneSpot(P.x, P.z, min); if (!s) return null;
+    if (Math.hypot(s.x - P.x, s.z - P.z) <= max) return s;
+  }
+  return null;
+}
 function laneSpotAhead(P, min, max) {
   for (let tries = 0; tries < 80; tries++) {
     const s = randomLaneSpot(P.x, P.z, min); if (!s) return null;
