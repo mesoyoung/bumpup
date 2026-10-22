@@ -96,6 +96,7 @@ const NEAR_MISS_PTS = 20;
 
 // ---- Boost rewards ----
 const BOOST_LINGER = 1;       // seconds boost keeps going after you let go
+const BOOST_TAP = 2.5;        // one tap of the Boost button boosts for this long
 const BOOST_SCORE = 2;        // points multiplier for smashes while boosting
 const BOOST_FUEL = 1.5;       // smashes refuel this much more while boosting
 const RAM_AT = 1;             // while boosting above this share of cruise speed you Power Ram...

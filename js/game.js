@@ -146,7 +146,7 @@ const Game = {
     UI.show(null);
     Game.state = 'play';
     const touchUI = matchMedia('(pointer: coarse)').matches;
-    UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'hold Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
+    UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'tap Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
     G.coachUntil = 4; G.redTips = 0; G.coachScan = 0; G.ramTold = false; G.lastBoostAt = 0;
     $('gSteer').innerHTML = Settings.steer === 'simple' ? '<b>Hold left / right</b> steer' : '<b>Drag</b> steer';
     $('gestures').classList.add('on'); clearTimeout(Game.gt); Game.gt = setTimeout(() => $('gestures').classList.remove('on'), 6000);
@@ -302,7 +302,7 @@ const Game = {
     for (const c of G.police) if (c.alive) look(c.x, c.z, threatOf(c.size, P.level));
     for (const it of World.props) if (it.alive && Math.abs(it.x - P.x) < 34 && Math.abs(it.z - P.z) < 34) look(it.x, it.z, it.batch.threat === 'wreck' ? 'bounce' : it.batch.threat);
     if (best === 'bounce') {
-      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "hold the Boost button" : "hold Shift"}</span>`, 'amber', 5.5);
+      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "tap the Boost button" : "hold Shift"}</span>`, 'amber', 5.5);
       coachSeen.amber++; G.coachUntil = G.time + 10;
     } else if (best === 'wreck') {
       UI.coach(`<i class="cr red"></i><span><b>Red</b> wrecks you. Steer round it or ${touchUI ? "swipe up" : "press ↑"} to hop</span>`, 'red', 5.5);

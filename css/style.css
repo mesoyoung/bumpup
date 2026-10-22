@@ -396,3 +396,12 @@ body.day #minimap { box-shadow: 0 0 0 2px rgba(255,255,255,.35), 0 6px 24px rgba
   .steer-hint.simple { width: 180px; margin-left: -90px; }
   .steer-hint.simple::before { content: ''; position: absolute; left: 50%; top: 8px; bottom: 8px; width: 2px; margin-left: -1px; background: var(--line); }
 }
+
+/* Boost button countdown ring: how much of a tapped burst is left */
+@media (pointer: coarse) {
+  .boost-btn::before { content: ''; position: absolute; inset: -7px; border-radius: 50%; pointer-events: none;
+    background: conic-gradient(#6ad5ff calc(var(--left, 0) * 360deg), transparent 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px)); }
+  .boost-btn.ram::before { background: conic-gradient(var(--gold) calc(var(--left, 0) * 360deg), transparent 0); }
+}

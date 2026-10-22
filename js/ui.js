@@ -49,7 +49,8 @@ const UI = {
     $('fuelBar').classList.toggle('low', tank < .25); $('fuelBar').classList.toggle('mid', tank >= .25 && tank < .5);
     $('speed').textContent = Math.round(Math.hypot(P.vx, P.vz) * 3.6);
     $('boostTag').classList.toggle('on', P.boosting);
-    $('boostBtn').classList.toggle('on', P.boosting); $('boostBtn').classList.toggle('ram', Ram.on);
+    $('boostBtn').classList.toggle('on', P.boosting);
+    $('boostBtn').style.setProperty('--left', clamp((P.boostHold || 0) / BOOST_TAP, 0, 1));   // countdown ring $('boostBtn').classList.toggle('ram', Ram.on);
     $('ramTag').classList.toggle('on', Ram.on);
     document.body.classList.toggle('ramming', Ram.on);
     $('driftTag').classList.toggle('on', P.drifting);

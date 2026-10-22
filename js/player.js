@@ -4,13 +4,13 @@
 // air), growing between tiers, and keyboard / touch input.
 // ============================================================
 
-const Input = { steer: 0, boost: false, btnBoost: false, brake: false, hop: false, keys: {}, kSteer: 0, touch: null, lastTap: null, pointers: new Set() };
+const Input = { steer: 0, boost: false, btnBoost: false, brake: false, hop: false, keys: {}, kSteer: 0, touch: null, lastTap: null, pointers: new Map() };   // pointers: every finger on the screen, id -> last x
 
 // ---------- One-finger touch gestures ----------
 //   drag left/right ............ steer (hard drag at speed = slide)
 //   double-tap and hold ........ boost (release to stop)
 //   swipe up ................... hop
-//   two fingers ................ pause
+//   more fingers ............... the newest finger steers; lift it and the one still down takes over
 function initInput(canvas) {
   const K = Input.keys;
   addEventListener('keydown', e => {
@@ -31,8 +31,7 @@ function initInput(canvas) {
   canvas.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse') return;
     e.preventDefault();
-    Input.pointers.add(e.pointerId);
-    if (Input.pointers.size >= 2) { endTouch(); if (Game.onPauseKey) Game.onPauseKey(); return; }
+    Input.pointers.set(e.pointerId, e.clientX);
     const t = now(), L = Input.lastTap;
     const dbl = L && t - L.t < TAP_GAP && Math.hypot(e.clientX - L.x, e.clientY - L.y) < 70;
     Input.touch = { id: e.pointerId, x0: e.clientX, y0: e.clientY, ox: e.clientX, cx: e.clientX, t0: t, mode: dbl ? 'boost' : 'steer', moved: 0, swiped: false };
@@ -63,16 +62,27 @@ function initInput(canvas) {
     // a short, still touch is a tap: remember it so the next touch can become a double-tap
     if (t - T.t0 < .22 && T.moved < 14 && T.mode === 'steer') Input.lastTap = { t, x: e.clientX, y: e.clientY };
     endTouch();
+    // another finger is still down: it takes over the steering
+    const rest = [...Input.pointers];
+    if (rest.length) {
+      const [id, x] = rest[rest.length - 1];
+      Input.touch = { id, x0: x, y0: 0, ox: x, cx: x, t0: t - 1, mode: 'steer', moved: 99, swiped: true };
+      hint.classList.add('on');
+    }
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-  // on-screen Boost button: hold it with your other thumb (it isn't part of the canvas, so it never counts as a second finger)
+  // on-screen Boost button: a tap gives a BOOST_TAP-second burst (tap again to top it up); holding keeps boosting.
+  // It isn't part of the canvas, so pressing it never interferes with steering.
   const bb = $('boostBtn');
   const bbOff = () => { Input.btnBoost = false; bb.classList.remove('held'); };
-  bb.addEventListener('pointerdown', e => { e.preventDefault(); Input.btnBoost = true; bb.classList.add('held'); try { bb.setPointerCapture(e.pointerId); } catch (err) {} });
+  bb.addEventListener('pointerdown', e => { e.preventDefault(); Input.btnBoost = true; Input.btnTap = true; bb.classList.add('held'); try { bb.setPointerCapture(e.pointerId); } catch (err) {} });
   bb.addEventListener('pointerup', bbOff); bb.addEventListener('pointercancel', bbOff); bb.addEventListener('lostpointercapture', bbOff);
   bb.addEventListener('contextmenu', e => e.preventDefault());
   addEventListener('blur', bbOff);
-  canvas.addEventListener('pointermove', e => { if (Input.touch && e.pointerId === Input.touch.id) Input.touch.cx = e.clientX; });
+  canvas.addEventListener('pointermove', e => {
+    if (Input.pointers.has(e.pointerId)) Input.pointers.set(e.pointerId, e.clientX);
+    if (Input.touch && e.pointerId === Input.touch.id) Input.touch.cx = e.clientX;
+  });
 }
 
 // Simple steering: where your finger is across the screen sets the turn. Near the middle = straight,
@@ -97,7 +107,8 @@ function readInput(dt) {
   }
   Input.steer = Input.kSteer || ts;
   const kb = !!(K.ShiftLeft || K.ShiftRight || K.Space);
-  Input.boost = (T && T.mode === 'boost') || kb || Input.btnBoost;
+  Input.boost = (T && T.mode === 'boost') || kb || Input.btnBoost || Input.btnTap;
+  if (Input.btnTap) { Input.btnTap = false; Player.boostHold = Math.max(Player.boostHold || 0, BOOST_TAP); }
   Input.brake = false;   // no brake: Crazy Dash = boost from slow; getting stuck backs you off automatically
 }
 
@@ -203,7 +214,7 @@ const Player = {
       }
     }
     // boost carries on for a moment after you let go, so you can line up a ram and then steer
-    if (Input.boost) this.boostHold = BOOST_LINGER;
+    if (Input.boost) this.boostHold = Math.max(this.boostHold || 0, BOOST_LINGER);
     else this.boostHold = Math.max(0, (this.boostHold || 0) - dt);
     if (Input.brake || autoBack) this.boostHold = 0;
     this.boosting = (Input.boost || this.boostHold > 0) && !outOfFuel && !Input.brake && !autoBack;
