@@ -62,6 +62,7 @@ class PropBatch {
     this.threat = t;
     styleRing(this.ringMat, t);
     this.ringMat.opacity = Lighting.bright ? .9 : t === 'smash' ? .75 : t === 'bounce' ? .65 : .6;
+    this.ring.visible = !isTiny(KINDS[this.kind].size, level);   // no tank from it, no ring
   }
 }
 

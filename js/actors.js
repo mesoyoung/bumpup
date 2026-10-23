@@ -70,6 +70,7 @@ function spawnPed(p, px, pz, minDist) {
 }
 function setPedThreat(level) {
   const t = threatOf(KINDS.ped.size, level), c = new THREE.Color();
+  Peds.ring.visible = !isTiny(KINDS.ped.size, level);
   for (const p of Peds.list) Peds.ring.setColorAt(p.idx, c.setHex(threatColor(p.golden ? 'gold' : t)));
   if (Peds.ring.instanceColor) Peds.ring.instanceColor.needsUpdate = true;
 }
@@ -154,7 +155,7 @@ class Car {
     this.node = spot.next; this.dir = spot.d; this.targets = []; this.v = this.cruise;
     this.sync();
   }
-  setThreat(level) { this.ring.material = RING_MATS[threatOf(this.size, level)]; }
+  setThreat(level) { this.ring.material = RING_MATS[threatOf(this.size, level)]; this.ring.visible = !isTiny(this.size, level); }
   plan() {
     const B = this.node, d = this.dir;
     let opts = DIRS.filter(o => validDir(B.i, B.j, o) && !(o.dx === -d.dx && o.dz === -d.dz));

@@ -109,6 +109,8 @@ const Ram = { on: false };
 const Lighting = { day: false, bright: false };   // bright = light ground (day, or the salt flats): rings switch to solid colours
 
 // ---- Tiny prey (2+ sizes below you) ----
+// things this small give no tank, so they don't get a ring either
+const isTiny = (size, level) => size <= level - 2;
 const TINY_PTS = .25;         // points share; no fuel and no combo either
 
 // ---- Wanted level (police) ----
