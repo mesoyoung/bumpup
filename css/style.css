@@ -450,3 +450,10 @@ body.day #minimap { box-shadow: 0 0 0 2px rgba(255,255,255,.35), 0 6px 24px rgba
 .tutor.nice .tz, .tutor.nice .tdim { background: none !important; opacity: 0; }
 .banner.go #bannerBig { font-size: clamp(90px, 26vw, 160px); color: var(--smash); }
 @media (prefers-reduced-motion: reduce) { .tutor .tz-hand::after, .tutor.waiting .tmsg { animation: none; } }
+
+/* feedback link on the game-over screen */
+.feedback-cta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 12px;
+  border: 1px solid rgba(61,255,143,.5); background: rgba(61,255,143,.08); color: var(--ink); text-decoration: none; font-size: 14px; }
+.feedback-cta b { color: var(--smash); font-size: 15px; letter-spacing: .04em; white-space: nowrap; }
+.feedback-cta:hover { background: rgba(61,255,143,.16); }
+a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
