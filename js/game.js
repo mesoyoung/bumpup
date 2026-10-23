@@ -169,32 +169,44 @@ const Game = {
   // The run is already going underneath; while it's up your tank doesn't drain and nothing can wreck you.
   const TUTOR_HOLD = .4;   // seconds of turning each step needs
   function tutorStart() {
-    G.tutor = { step: 'left', held: 0 }; Player.noDrain = true;
+    G.tutor = { step: 'left', held: 0, wait: true, pause: 0 }; Player.noDrain = true;
     tutorShow();
   }
   function tutorShow() {
     const touchUI = matchMedia('(pointer: coarse)').matches, s = G.tutor.step, el = $('tutor');
     const simple = Settings.steer === 'simple';
     const how = {
-      left: touchUI ? (simple ? 'Hold your finger on the <b>left side</b> of the screen' : 'Touch and <b>drag left</b>') : 'Hold <kbd>←</kbd>',
-      right: touchUI ? (simple ? 'Now hold the <b>right side</b>' : 'Now touch and <b>drag right</b>') : 'Now hold <kbd>→</kbd>',
+      left: touchUI ? (simple ? 'Press and hold the <b>left side</b> of the screen' : 'Touch and <b>drag left</b>') : 'Press and hold <kbd>←</kbd>',
+      right: touchUI ? (simple ? 'Press and hold the <b>right side</b>' : 'Touch and <b>drag right</b>') : 'Press and hold <kbd>→</kbd>',
     }[s];
-    el.hidden = false; el.className = 'tutor ' + s + (touchUI && simple ? ' zones' : '');
+    el.hidden = false; el.className = 'tutor waiting ' + s + (touchUI && simple ? ' zones' : '');
     $('tutorBig').textContent = s === 'left' ? 'Turn left' : 'Turn right';
+    $('tutorStep').textContent = s === 'left' ? 'Step 1 of 2' : 'Step 2 of 2';
+    $('tutorFill').style.transform = 'scaleX(0)';
     $('tutorSmall').innerHTML = how;
   }
   function tutorUpdate(dt) {
     const T = G.tutor; if (!T || T.step === 'done') return;
-    const want = T.step === 'left' ? -1 : 1;
-    if (Input.steer * want > .35) T.held += dt; else T.held = Math.max(0, T.held - dt * .5);
+    if (T.pause > 0) { T.pause -= dt; return; }                 // the "Nice!" beat between steps
+    const want = T.step === 'left' ? -1 : 1, doing = Input.steer * want > 0;
+    if (doing !== !T.wait) { T.wait = !doing; $('tutor').classList.toggle('waiting', T.wait); }
+    if (Input.steer * want > .3) T.held += dt; else T.held = Math.max(0, T.held - dt * .5);
     $('tutorFill').style.transform = `scaleX(${clamp(T.held / TUTOR_HOLD, 0, 1)})`;
     if (T.held < TUTOR_HOLD) return;
-    Sound.star(); T.held = 0;
-    if (T.step === 'left') { T.step = 'right'; tutorShow(); return; }
-    T.step = 'done'; $('tutor').hidden = true; Player.noDrain = false; G.tutor = null;
-    store.set('tutorDone', true);
-    UI.banner('Nice driving!', 'Now smash anything with a green ring.', 'tier');
-    setTimeout(() => { if (Game.state === 'play') runIntro(); }, 2400);
+    Sound.star(); T.held = 0; UI.flash('green');
+    $('tutor').classList.add('nice'); $('tutorBig').textContent = 'Nice!'; $('tutorSmall').innerHTML = T.step === 'left' ? 'Now the other way' : 'You\'ve got it';
+    if (T.step === 'left') {
+      T.step = 'right'; T.pause = .9;
+      setTimeout(() => { if (G.tutor) { $('tutor').classList.remove('nice'); G.tutor.wait = true; tutorShow(); } }, 900);
+      return;
+    }
+    T.step = 'done'; T.wait = false; Player.noDrain = false; store.set('tutorDone', true);
+    setTimeout(() => {
+      $('tutor').hidden = true; $('tutor').classList.remove('nice'); G.tutor = null;
+      if (Game.state !== 'play') return;
+      Sound.upgrade(); UI.banner('GO!', 'Smash anything with a green ring.', 'tier go');
+      setTimeout(() => { if (Game.state === 'play') runIntro(); }, 2200);
+    }, 900);
   }
   // The landing screen is the live city: your car waits on the centre line while traffic drives past.
   function parkCar() {
@@ -549,6 +561,7 @@ const Game = {
     if (Game.state === 'paused') { renderer.render(scene, camera); return; }
     if (G.hitPause > 0) { G.hitPause -= dt; renderer.render(scene, camera); return; }
     if (G.slow > 0) { G.slow -= dt; dt *= .35; }
+    if (G.tutor && G.tutor.wait) dt *= .1;   // tutorial: the world crawls until you do what it asks
     const playing = Game.state === 'play', dying = Game.state === 'dying';
     const who = playing || dying ? Player : dummy;
     if (playing || dying) { const s0 = Math.floor(G.time); G.time += dt; if (playing && Math.floor(G.time) !== s0) Missions.event('time', { time: G.time }); }
