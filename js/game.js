@@ -167,6 +167,7 @@ const Game = {
 
   // ---------- first-run tutorial: turn left, turn right, then off you go ----------
   // The run is already going underneath; while it's up your tank doesn't drain and nothing can wreck you.
+  const TUTOR_HOLD = .4;   // seconds of turning each step needs
   function tutorStart() {
     G.tutor = { step: 'left', held: 0 }; Player.noDrain = true;
     tutorShow();
@@ -186,8 +187,8 @@ const Game = {
     const T = G.tutor; if (!T || T.step === 'done') return;
     const want = T.step === 'left' ? -1 : 1;
     if (Input.steer * want > .35) T.held += dt; else T.held = Math.max(0, T.held - dt * .5);
-    $('tutorFill').style.transform = `scaleX(${clamp(T.held / .8, 0, 1)})`;
-    if (T.held < .8) return;
+    $('tutorFill').style.transform = `scaleX(${clamp(T.held / TUTOR_HOLD, 0, 1)})`;
+    if (T.held < TUTOR_HOLD) return;
     Sound.star(); T.held = 0;
     if (T.step === 'left') { T.step = 'right'; tutorShow(); return; }
     T.step = 'done'; $('tutor').hidden = true; Player.noDrain = false; G.tutor = null;
