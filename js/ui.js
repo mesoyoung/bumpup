@@ -294,15 +294,6 @@ const UI = {
     os.innerHTML = (done.length ? done.map(m => `<div>Mission complete: ${m.text} <b>+${fmt(m.reward)}</b></div>`).join('') : '')
       + (setDone ? `<div class="lvl">Driver level ${setDone.level}! All three done <b>+${fmt(bonus)}</b>. New missions are ready.</div>` : '');
     $('overMissions').innerHTML = this.missionCards(Missions.state.active);
-    // upgrade growth: when each tier was reached
-    const total = Math.max(G.time, 1);
-    $('growth').innerHTML = TIERS.map((t, i) => {
-      const u = G.upgrades.find(u => u.tier === i);
-      const pct = u ? (u.time / total) * 100 : null;
-      return `<div class="g-row${u ? '' : ' miss'}"><span class="g-name">${t.name}</span>
-        <span class="g-track"><span class="g-mark" style="left:${pct == null ? 0 : pct}%"></span><span class="g-fill" style="width:${pct == null ? 0 : 100 - pct}%; left:${pct == null ? 0 : pct}%"></span></span>
-        <span class="g-time">${u ? mmss(u.time) : '—'}</span></div>`;
-    }).join('');
     const rows = Object.entries(G.counts).sort((a, b) => b[1] - a[1]);
     $('breakdown').innerHTML = rows.length ? rows.map(([k, n]) => `<span class="chip"><b>${n}</b> ${k}</span>`).join('') : '<span class="chip">No smashes this run</span>';
   },
