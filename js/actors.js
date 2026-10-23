@@ -144,7 +144,7 @@ class Car {
     if (this.golden) this.color = 0xffd23a;
     this.mesh = makeVehicleMesh(kind, this.color, this.golden);
     this.ring = new THREE.Mesh(GEO.ring, RING_MATS.smash);
-    this.ring.scale.set(this.hw + .9, 1, this.hl + .9); this.ring.position.y = .06;
+    this.ring.scale.set(this.hw + .9, kind === 'tank' ? 3.2 : 1, this.hl + .9);   // tanks: a much taller ring so it shows over the low hull this.ring.position.y = .06;
     this.mesh.add(this.ring);
     scene.add(this.mesh);
     this.alive = true; this.v = 0; this.cruise = (TRAFFIC_SPEED[kind] || 14) * rand(.85, 1.1);
