@@ -214,6 +214,7 @@ const BOSS = {
   timeBonus: 25,       // ...plus this many per second left on the clock
   stars: [80, 140],    // finish within this many seconds for 3 stars / 2 stars
   coins: 100,          // bonus coins per star
+  flee: .25,           // once it's been hit: if your Tank is more than 25 points (of 100) above its health, it runs; otherwise it hunts you
 };
 
 const RAMPAGE = {

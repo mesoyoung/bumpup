@@ -305,8 +305,22 @@ class Boss extends Police {
   }
   update(dt, cars, player, now) {
     this.hurt = Math.max(0, this.hurt - dt);
+    // once the fight is on: hunt you while it's as healthy as you (or close), run when you're clearly healthier
+    if (this.mode !== 'roam' && player.fuelMax) {
+      const mine = this.hp / BOSS.hp, yours = player.fuel / player.fuelMax;
+      this.mode = yours > mine + BOSS.flee ? 'flee' : 'chase';
+    }
     if (this.mode === 'roam') Car.prototype.update.call(this, dt, cars, player);
-    else super.update(dt, cars, player, now);
+    else if (this.mode === 'flee') {
+      // head for a point well away from you (re-picked every couple of seconds so it doesn't dither)
+      this.fleeT = (this.fleeT || 0) - dt;
+      if (this.fleeT <= 0 || !this.fleeTo) {
+        const dx = this.x - player.x, dz = this.z - player.z, d = Math.hypot(dx, dz) || 1;
+        this.fleeTo = { x: clamp(this.x + dx / d * 220, 0, SIZE), z: clamp(this.z + dz / d * 220, 0, SIZE), vx: 0, vz: 0, tier: player.tier };
+        this.fleeT = 2;
+      }
+      super.update(dt, cars, this.fleeTo, now);
+    } else super.update(dt, cars, player, now);
     this.mesh.visible = this.hurt <= 0 || Math.floor(this.hurt * 12) % 2 === 0;   // flickers while it recovers
     this.icon.rotation.y += dt * 2.5; this.icon.position.y = 9 + Math.sin(now * 3) * .5;
   }

@@ -151,7 +151,9 @@ const UI = {
     if (this.bh.hold > 0) this.bh.hold -= dt; else this.bh.trail = Math.max(cur, this.bh.trail - .6 * dt);
     this.bh.prev = cur;
     $('bossFill').style.transform = `scaleX(${cur})`; $('bossTrail').style.transform = `scaleX(${this.bh.trail})`;
-    $('bossInfo').textContent = (B.hurt > 0 ? 'Reeling · ' : Ram.on ? 'RAM IT! · ' : 'Boost into it · ') + Math.round(d) + ' m';
+    $('bossInfo').textContent = (B.hurt > 0 ? 'Reeling · ' : Ram.on ? 'RAM IT! · ' : B.mode === 'flee' ? 'Running away! · ' : B.mode === 'chase' ? 'Hunting you · ' : 'Boost into it · ') + Math.round(d) + ' m';
+    if (this.bossMode && this.bossMode !== B.mode && B.mode !== 'roam') this.toast(B.mode === 'flee' ? "The Iron Hauler is running away! Chase it down" : "The Iron Hauler is coming for you!");
+    this.bossMode = B.mode;
     // arrow: only when it's not on screen (or far)
     this.v.set(B.x, 2, B.z).project(camera);
     const onScreen = this.v.z < 1 && Math.abs(this.v.x) < .9 && Math.abs(this.v.y) < .9;
