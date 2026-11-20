@@ -49,9 +49,8 @@ const UI = {
     const pend = $('pending');
     if (G.pending > 0) { pend.textContent = '+' + fmt(G.pending); pend.classList.add('on'); } else pend.classList.remove('on');
 
-    $('fuelFill').style.transform = `scaleX(${P.fuel / P.fuelMax})`;
     const tank = P.fuel / P.fuelMax;
-    $('fuelBar').classList.toggle('low', tank < .25); $('fuelBar').classList.toggle('mid', tank >= .25 && tank < .5);
+    this.tankBar(P);
     $('speed').textContent = Math.round(Math.hypot(P.vx, P.vz) * 3.6);
     $('boostTag').classList.toggle('on', P.boosting);
     $('boostBtn').classList.toggle('on', P.boosting);
@@ -66,6 +65,31 @@ const UI = {
     const stars = document.querySelectorAll('#stars i');
     stars.forEach((s, i) => s.classList.toggle('on', i < G.stars));
     $('stars').classList.toggle('hot', G.stars > 0);
+  },
+
+  // ---------- the Tank, drawn like a health bar ----------
+  // Damage: the bar drops at once and the lost chunk lingers in red, then drains away.
+  // Refills: a bright segment shows the new level first and the bar sweeps up to meet it.
+  // Hunger's slow drain just slides, with no trail.
+  resetTank() { this.hp = null; },
+  tankBar(P) {
+    const now = performance.now() / 1000, dt = Math.min(.1, now - (this.hpT || now)); this.hpT = now;
+    const cur = clamp(P.fuel / P.fuelMax, 0, 1);
+    if (!this.hp) this.hp = { fill: cur, trail: cur, prev: cur, hold: 0 };
+    const h = this.hp, bar = $('fuelBar');
+    if (cur < h.prev - .02) {                                   // a hit
+      h.trail = Math.max(h.trail, h.prev); h.hold = .45;
+      bar.classList.remove('hit'); void bar.offsetWidth; bar.classList.add('hit');
+    }
+    h.fill = cur > h.fill ? Math.min(cur, h.fill + 1.1 * dt) : cur;   // rises with a sweep, drops at once
+    if (h.hold > 0) h.hold -= dt; else h.trail = Math.max(h.fill, h.trail - .9 * dt);
+    if (h.trail < h.fill) h.trail = h.fill;
+    h.prev = cur;
+    $('fuelFill').style.transform = `scaleX(${h.fill})`;
+    $('fuelTrail').style.transform = `scaleX(${h.trail})`;
+    $('fuelGain').style.transform = `scaleX(${Math.max(cur, h.fill)})`;
+    bar.classList.toggle('low', cur < .25); bar.classList.toggle('mid', cur >= .25 && cur < .5);
+    bar.setAttribute('aria-valuenow', Math.round(cur * 100));
   },
 
   // ---------- minimap (north up, centred on the player) ----------
@@ -117,10 +141,16 @@ const UI = {
     const B = G.boss, bar = $('bossBar'), el = $('bossArrow');
     if (!B || !B.alive) { bar.hidden = true; el.classList.remove('on'); return; }
     bar.hidden = false;
-    const th = threatOf(B.size, P.level), d = Math.hypot(B.x - P.x, B.z - P.z);
-    bar.classList.toggle('amber', th === 'bounce'); bar.classList.toggle('green', th === 'smash');
-    $('bossPips').innerHTML = Array.from({ length: BOSS.hp }, (_, i) => `<i class="${i < B.hp ? '' : 'gone'}"></i>`).join('');
-    $('bossInfo').textContent = (th === 'smash' ? 'Smash it! · ' : th === 'bounce' ? 'Power Ram it · ' : 'Too big · ') + Math.round(d) + ' m';
+    const d = Math.hypot(B.x - P.x, B.z - P.z), cur = B.hp / BOSS.hp;
+    bar.classList.add('amber'); bar.classList.toggle('green', Ram.on);
+    // its health bar: drops at once, the lost chunk lingers in white then drains
+    const now = performance.now() / 1000, dt = Math.min(.1, now - (this.bhT || now)); this.bhT = now;
+    if (!this.bh || this.bh.boss !== B) this.bh = { boss: B, trail: cur, prev: cur, hold: 0 };
+    if (cur < this.bh.prev - .001) { this.bh.trail = Math.max(this.bh.trail, this.bh.prev); this.bh.hold = .5; }
+    if (this.bh.hold > 0) this.bh.hold -= dt; else this.bh.trail = Math.max(cur, this.bh.trail - .6 * dt);
+    this.bh.prev = cur;
+    $('bossFill').style.transform = `scaleX(${cur})`; $('bossTrail').style.transform = `scaleX(${this.bh.trail})`;
+    $('bossInfo').textContent = (B.hurt > 0 ? 'Reeling · ' : Ram.on ? 'RAM IT! · ' : 'Boost into it · ') + Math.round(d) + ' m';
     // arrow: only when it's not on screen (or far)
     this.v.set(B.x, 2, B.z).project(camera);
     const onScreen = this.v.z < 1 && Math.abs(this.v.x) < .9 && Math.abs(this.v.y) < .9;

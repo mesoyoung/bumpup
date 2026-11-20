@@ -303,6 +303,7 @@ class Boss extends Police {
     else super.update(dt, cars, player, now);
     this.mesh.visible = this.hurt <= 0 || Math.floor(this.hurt * 12) % 2 === 0;   // flickers while it recovers
   }
+  setThreat() { this.ring.material = RING_MATS.bounce; this.ring.visible = true; }   // always amber: boost through it
 }
 
 // Food trucks: parked, refuel + repair on touch

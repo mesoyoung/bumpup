@@ -36,8 +36,8 @@
   </div>
 
   <div class="hud-vitals">
-    <div class="vital"><span class="lbl">Tank</span><div id="fuelBar" class="bar fuel tank"><span id="fuelFill"></span></div></div>
-    <div id="bossBar" class="boss-bar" hidden><span class="bb-name">☠ Iron Hauler</span><span id="bossPips" class="bb-pips"></span><span id="bossInfo" class="bb-info"></span></div>
+    <div class="vital"><span class="lbl">Tank</span><div id="fuelBar" class="hpbar" role="meter" aria-label="Tank"><span id="fuelTrail" class="hp-trail"></span><span id="fuelGain" class="hp-gain"></span><span id="fuelFill" class="hp-fill"></span><span class="hp-ticks"></span></div></div>
+    <div id="bossBar" class="boss-bar" hidden><span class="bb-name">☠ Iron Hauler</span><span id="bossHp" class="hpbar boss-hp"><span id="bossTrail" class="hp-trail"></span><span id="bossFill" class="hp-fill"></span></span><span id="bossInfo" class="bb-info"></span></div>
   </div>
 
   <div class="hud-speed">
@@ -150,7 +150,7 @@
         <span><b>Tap the Boost button</b> for a burst of boost, or hold it to keep going. The ring around it is your <b>boost charge</b></span>
         <span><b>II button</b> to pause</span>
       </div>
-      <p class="tricks"><b>Rampage</b> (3 minutes): take down the <b>Iron Hauler</b>, a bounty that roams the city. It takes 3 hits: it wrecks you while you're small, a Truck can Power Ram it, and a Bus can smash it. Every smash is a bite, and enough bites make you grow; vehicles are worth 3. Keep eating or your tank runs dry. Parking lots (P on the minimap) are the best feeding grounds. <b>Classic</b>: endless, you grow by score.</p>
+      <p class="tricks"><b>Rampage</b> (3 minutes): take down the <b>Iron Hauler</b>, a bounty that roams the city. Boost into it at speed to smash right through it; the bigger you are, the more damage you do. After each hit it blinks for a moment and can't be hurt. Every smash is a bite, and enough bites make you grow; vehicles are worth 3. Keep eating or your tank runs dry. Parking lots (P on the minimap) are the best feeding grounds. <b>Classic</b>: endless, you grow by score.</p>
       <p class="tricks"><b>Slides:</b> with Drift steering, turn hard at speed and the car slides (Simple and Drag steering never slide); the longer the slide, the bigger the boost when you straighten up. <b>Tank:</b> one bar for fuel and damage. It drains as you drive and when you bump things; smashing refills it, and so do food trucks. <b>Crazy Dash:</b> boost from a standstill. <b>Loop the loops:</b> boost all the way round for big points; without boost you roll back or fall off. <b>Boost</b> needs charge: wreck vehicles and slide or take hard corners to fill the ring around the Boost button. Boosting gives double points and a fuller refill; while boosting at speed you <b>Power Ram</b> through amber objects for a little tank. <b>Hunt your size:</b> things far smaller than you barely score. Orange ramps launch you for air points.</p>
       <p class="credits">Engine and tyre recordings by freesound_community and olenchic (Pixabay).</p>
       <button id="tutorAgain" class="btn small-btn">Play the tutorial again</button>

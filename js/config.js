@@ -203,10 +203,11 @@ const EVOLVE_RADIUS = 40;     // every vehicle within this many metres gets blow
 const EVOLVE_COIN = 5;        // ...but each one is worth this many coins
 
 // ---- The boss: every Rampage run has a bounty on the Iron Hauler ----
-// It's size 4, so it's red (wrecks you) as a Sedan or SUV, amber as a Truck (Power Ram it with boost for an
-// early kill), and green once you're a Bus. Three hits take it down; after the first it comes for you.
+// It's always amber: only a Power Ram (boosting at speed) hurts it, at any size. You smash right through it,
+// and bigger cars do more damage. After each hit it's briefly untouchable (blinking). Once hurt, it hunts you.
 const BOSS = {
-  hp: 3,
+  hp: 100,
+  dmg: [10, 18, 28, 40], // damage per Power Ram as a Sedan / SUV / Truck / Bus
   speed: .8,           // its speed relative to a police car's
   hurt: 1.3,           // seconds after a hit before it can be hit again
   pts: 3000,           // points for the kill...

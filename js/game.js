@@ -184,7 +184,7 @@ const Game = {
     camPos.copy(camera.position); camYaw = Player.h;   // glide from the landing view into the chase cam
     // launch camera: start exactly where the landing screen's sweep is, and pan round to straight behind
     G.introCam = { t: 0, off: Math.sin(titleA) * .9, bob: Math.sin(titleA * .7) * .4 };
-    UI.clearFloats();
+    UI.clearFloats(); UI.resetTank();
     UI.show(null);
     Game.state = 'play';
     G.coachUntil = G.mode === 'rampage' ? 25 : 4; G.redTips = 0; G.coachScan = 0; G.ramTold = false; G.lastBoostAt = 0;
@@ -193,7 +193,7 @@ const Game = {
   }
   function runIntro() {
     const touchUI = matchMedia('(pointer: coarse)').matches;
-    if (G.mode === 'rampage') UI.banner('BOUNTY', `Take down the Iron Hauler: 3 hits. Eat and grow until you can!`, 'tier');
+    if (G.mode === 'rampage') UI.banner('BOUNTY', `Take down the Iron Hauler. Boost into it to smash through. The bigger you are, the harder you hit!`, 'tier');
     else UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'tap Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
     G.coachUntil = G.time + (G.mode === 'rampage' ? 25 : 4);
   }
@@ -384,26 +384,19 @@ const Game = {
   }
   function hitBoss(B, res) {
     const P = Player;
-    let th = threatOf(B.size, P.level);
-    if (th === 'wreck' && G.time < (G.safeUntil || 0)) th = 'bounce';
-    if (th === 'bounce' && Ram.on) th = 'hit';                 // Power Ram: an early kill as a Truck
-    if (th === 'smash') th = 'hit';
-    if (th === 'wreck') { die('Flattened by the Iron Hauler'); return; }
-    if (th === 'bounce' || B.hurt > 0) {                       // too big for you, or still reeling: bounce off
-      if (B.hurt > 0) { P.vx += res.nx * 8; P.vz += res.nz * 8; P.scaleSpeed(.6); Sound.bonk(); return; }
-      bounce(B, 'hauler', res, B); return;
-    }
-    // a real hit
-    B.hp--; B.hurt = BOSS.hurt;
-    const ux = -res.nx, uz = -res.nz;                          // shove it away from you
-    B.x += ux * 3; B.z += uz * 3; B.v = -6;
-    P.scaleSpeed(.55); P.vx += res.nx * 6; P.vz += res.nz * 6;
-    G.shake = Math.max(G.shake, 1.1); G.hitPause = Math.max(G.hitPause, .14); G.kick = 1.6; G.fovKick = 10;
+    if (B.hurt > 0) return;                                    // still blinking from the last hit: you pass straight through
+    if (!Ram.on) { bounce(B, 'hauler', res, B); return; }      // not boosting at speed: it's amber, so you bounce off
+    // Power Ram: smash right through it. You keep your speed; it takes damage by your size, and blinks.
+    const dmg = BOSS.dmg[P.tier] || BOSS.dmg[0];
+    B.hp = Math.max(0, B.hp - dmg); B.hurt = BOSS.hurt;
+    const side = Math.sign((B.x - P.x) * P.fz - (B.z - P.z) * P.fx) || 1;   // knock it aside, out of your path
+    B.x += P.fz * side * 2.5; B.z -= P.fx * side * 2.5; B.v *= .3;
+    G.shake = Math.max(G.shake, 1); G.hitPause = Math.max(G.hitPause, .12); G.kick = 1.6; G.fovKick = 10;
     UI.flash('gold'); Sound.wreck(); Sound.star();
     shockwave(scene, B.x, B.z, 14, 0xffd23a);
-    emit(B.x, 2, B.z, 50, [0xffd23a, 0xff2e4d, 0x1a1c22, 0xffffff], { speed: 18, up: 12, size: .3, life: 1.1 });
+    emit(B.x, 2, B.z, 60, [0xffd23a, 0xff2e4d, 0x1a1c22, 0xffffff], { speed: 18, up: 12, size: .3, life: 1.1, vx: P.vx * .4, vz: P.vz * .4 });
     if (B.hp <= 0) { bossDown(B); return; }
-    UI.float(B.x, 5, B.z, `BOSS HIT! ${B.hp} to go`, 'ram');
+    UI.float(B.x, 5, B.z, `SMASHED THROUGH! -${dmg}`, 'ram');
     if (!G.bossAngry) {                                       // it's angry now: it comes for you, and the police join in
       G.bossAngry = true; B.mode = 'chase';
       G.heat = Math.max(G.heat, HEAT_STARS[1]);
@@ -551,7 +544,7 @@ const Game = {
     emit(P.x + res.nx * -1, 1.2, P.z - res.nz, 14, [0xffd23a, 0xffffff, 0xff7b00], { speed: 8, up: 6, size: .18 });
     const need = TIERS.find(t => TIERS.indexOf(t) + 1 >= KINDS[kind].size);
     if (P.fuel <= 0) die(`Wrecked by a ${KINDS[kind].name.toLowerCase()}`);
-    else UI.toast(`Too big! ${KINDS[kind].name}s need a ${need ? need.name : 'bigger ride'}`);
+    else UI.toast(kind === 'hauler' ? 'Boost into it to smash through!' : `Too big! ${KINDS[kind].name}s need a ${need ? need.name : 'bigger ride'}`);
   }
   function onWall(into) {
     const P = Player;
