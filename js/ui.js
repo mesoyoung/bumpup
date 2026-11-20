@@ -8,6 +8,7 @@ const ICONS = {
   soundOn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   soundOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></g></svg>',
+  missions: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5l1.5 1.5L8.5 5M4 12.5l1.5 1.5 3-3M4 18.5l1.5 1.5 3-3"/><path d="M12 7h8M12 13h8M12 19h8"/></g></svg>',
   moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="currentColor"/></svg>',
 };
 const FLOAT_HOLD = 1.4, FLOAT_LIFE = 2, FLOAT_STACK = 2;   // a "+50" holds at the centre, then flies to the score in .6 s
@@ -268,6 +269,11 @@ const UI = {
     document.querySelectorAll('.map-card').forEach((c, k) => c.classList.toggle('focus', k === i));
     $('mapPrev').disabled = i === 0; $('mapNext').disabled = i === MAPS.length - 1;
   },
+  toggleOverMissions(open) {
+    const pop = $('overMissionsPop'), btn = $('overMissionsBtn');
+    if (open == null) open = pop.hidden;
+    pop.hidden = !open; btn.setAttribute('aria-expanded', open); btn.classList.toggle('open', open);
+  },
   closeMaps() { $('mapPicker').hidden = true; },
   missionPop(text, reward) {
     const el = $('missionPop');
@@ -283,8 +289,6 @@ const UI = {
     $('overBest').textContent = isBest ? 'New best score' : `Best ${fmt(best)}`;
     $('overBest').classList.toggle('new', isBest);
     $('stCombo').textContent = 'x' + G.bestCombo;
-    $('stBiggest').textContent = G.biggest ? G.biggest : 'Nothing yet';
-    $('stTier').textContent = TIERS[P.tier].name;
     $('stTime').textContent = mmss(G.time);
     const bonus = setDone ? setDone.bonus : 0;
     $('stCoins').textContent = '+' + fmt(coinsEarned + missionCoins + bonus);
@@ -294,7 +298,10 @@ const UI = {
     os.innerHTML = (done.length ? done.map(m => `<div>Mission complete: ${m.text} <b>+${fmt(m.reward)}</b></div>`).join('') : '')
       + (setDone ? `<div class="lvl">Driver level ${setDone.level}! All three done <b>+${fmt(bonus)}</b>. New missions are ready.</div>` : '');
     $('overMissions').innerHTML = this.missionCards(Missions.state.active);
-    const rows = Object.entries(G.counts).sort((a, b) => b[1] - a[1]);
-    $('breakdown').innerHTML = rows.length ? rows.map(([k, n]) => `<span class="chip"><b>${n}</b> ${k}</span>`).join('') : '<span class="chip">No smashes this run</span>';
+    // missions live behind the icon at the top right; its badge shows progress and lights up if one was finished this run
+    const doneN = Missions.state.active.filter(m => m.done).length;
+    $('overMIcon').innerHTML = ICONS.missions; $('overMBadge').textContent = `${doneN}/3`;
+    $('overMissionsBtn').classList.toggle('new', done.length > 0 || !!setDone);
+    this.toggleOverMissions(false);
   },
 };
