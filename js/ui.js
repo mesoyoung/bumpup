@@ -188,7 +188,7 @@ const UI = {
       return `<button class="paint${sel ? ' sel' : ''}${has ? '' : ' locked'}" data-id="${p.id}" aria-pressed="${sel}">
         <span class="swatch" style="${designSwatch(p)}"></span><span class="pname">${p.name}</span><span class="ptag">${tag}</span><span class="pcost">${has ? (sel ? 'Selected' : 'Owned') : '◉ ' + fmt(p.cost)}</span></button>`;
     }).join('');
-    $('garageCoins').textContent = fmt(coins);
+    $('shopCoins').textContent = fmt(coins);
     const doneN = Missions.state.active.filter(m => m.done).length;
     $('missionBadge').textContent = `${doneN}/3`; $('missionBadge').classList.toggle('all', doneN === 3);
     $('missionList').innerHTML = this.missionCards(Missions.state.active);
@@ -219,7 +219,13 @@ const UI = {
     }).join('');
   },
   openSheet(name) {
-    const titles = { missions: 'Missions', garage: 'Garage', paint: 'Paint shop', howto: 'How to play' };
+    // Garage upgrades and paint live together in the Shop, behind tabs
+    if (name === 'garage' || name === 'paint') { this.shopTab = name; name = 'shop'; }
+    const shop = name === 'shop';
+    if (shop) name = this.shopTab || 'garage';
+    $('shopTabs').hidden = !shop;
+    document.querySelectorAll('.st-tab').forEach(t => { const on = t.dataset.tab === name; t.classList.toggle('on', on); t.setAttribute('aria-selected', on); });
+    const titles = { missions: 'Missions', garage: 'Shop', paint: 'Shop', howto: 'How to play' };
     $('sheetTitle').textContent = titles[name];
     document.querySelectorAll('.tabpane').forEach(p => { p.hidden = p.dataset.pane !== name; });
     $('sheetWrap').hidden = false; this.sheet = name;

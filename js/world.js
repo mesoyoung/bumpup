@@ -411,22 +411,30 @@ function buildRamps(scene) {
   const deck = lam(0x30343f), edge = basic(0xff7b00), arrow = basic(0xffd23a);
   const used = new Set();
   const count = World.map.arena ? RAMP_COUNT + 12 : RAMP_COUNT;
-  for (let k = 0; k < count * 6 && World.ramps.length < count; k++) {
+  const squares = inSquares();
+  for (let k = 0; k < count * 6 && World.ramps.length < (squares ? 16 : count); k++) {
     const line = Math.floor(Math.random() * (N + 1)), s = Math.floor(Math.random() * N), axis = pick(['x', 'z']);
-    const key = `${axis}${line}_${s}`; if (used.has(key)) continue; used.add(key);
+    const key = `${axis}${line}_${s}`; if (!squares && used.has(key)) continue; used.add(key);
     const dir = pick([1, -1]), t = CELL / 2;
     let x = axis === 'x' ? s * CELL + t : line * CELL, z = axis === 'x' ? line * CELL : s * CELL + t;
+    // Seaside: out in the squares, any size, any angle
+    const L = squares ? rand(5.5, 9.5) : 7, H = squares ? rand(1, 3.4) : 1.6;
+    if (squares) {
+      const sp = squareSpot(L / 2 + 3); if (!sp) continue; x = sp.x; z = sp.z;
+      if (pushOutOfBuildings(x, z, L / 2 + 2) || nearFood(x, z, 12) || World.ramps.some(r => Math.hypot(r.x - x, r.z - z) < 16)) continue;
+    }
     if (World.map.arena) { x = rand(20, SIZE - 20); z = rand(20, SIZE - 20); if (pushOutOfBuildings(x, z, 8)) continue; }
     if (Math.hypot(x - START.x, z - START.z) < 50) continue; // keep the start clear
-    const rot = World.map.arena ? rand(0, Math.PI * 2) : axis === 'x' ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (dir > 0 ? 0 : Math.PI);
+    const rot = World.map.arena || squares ? rand(0, Math.PI * 2) : axis === 'x' ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (dir > 0 ? 0 : Math.PI);
     const g = new THREE.Group();
-    const L = 7, H = 1.6, ang = Math.atan2(H, L), slope = Math.hypot(L, H);
+    const ang = Math.atan2(H, L), slope = Math.hypot(L, H);
     const top = new THREE.Mesh(GEO.box, deck); top.scale.set(3.2, .25, slope); top.rotation.x = -ang; top.position.set(0, H / 2, 0); g.add(top);
     const back = new THREE.Mesh(GEO.box, deck); back.scale.set(3.2, H, .25); back.position.set(0, H / 2, L / 2); g.add(back);
     for (const sx of [-1.6, 1.6]) { const e = new THREE.Mesh(GEO.box, edge); e.scale.set(.14, .3, slope); e.rotation.x = -ang; e.position.set(sx, H / 2 + .1, 0); g.add(e); }
     for (let c = 0; c < 3; c++) { const a = new THREE.Mesh(GEO.box, arrow); a.scale.set(1.4, .06, .35); a.rotation.x = -ang; a.position.set(0, H / 2 - L / 2 * Math.sin(ang) + (c + 1) * (H / 4) + .15, -L / 2 + (c + 1) * (L / 4)); g.add(a); }
     g.position.set(x, 0, z); g.rotation.y = rot; scene.add(g);
-    World.ramps.push({ x, z, rot, hl: L / 2, hw: 1.6 });
+    World.ramps.push({ x, z, rot, hl: L / 2, hw: 1.6, lift: H / 1.6 });
+    if (squares) clearAround(x, z, L / 2 + 2.5);
   }
 }
 
@@ -439,27 +447,51 @@ const LOOP_FADE = (() => {   // chevrons painted on the run-in
   for (const y of [100, 64, 28]) { x.beginPath(); x.moveTo(10, y + 18); x.lineTo(32, y); x.lineTo(54, y + 18); x.stroke(); }
   return new THREE.CanvasTexture(c);
 })();
-function stuntPoint(th, r) {   // a point on the loop's centre line, at radius r from its axis
-  return new THREE.Vector3(-LOOP_SHIFT / 2 + LOOP_SHIFT * th / (Math.PI * 2), LOOP_R - r * Math.cos(th), r * Math.sin(th));
+function stuntPoint(th, r, R = LOOP_R) {   // a point on a loop's centre line, at radius r from its axis
+  return new THREE.Vector3(-LOOP_SHIFT / 2 + LOOP_SHIFT * th / (Math.PI * 2), R - r * Math.cos(th), r * Math.sin(th));
 }
-function buildStuntLoops(scene) {
-  const deck = new THREE.MeshLambertMaterial({ color: 0x3a4360, side: THREE.DoubleSide, transparent: true, opacity: .55, depthWrite: false }), rail = basic(0xff7b00), post = lam(0x3a4050), pad = basic(0xffffff, { map: LOOP_FADE, transparent: true, depthWrite: false });
-  // the track surface: one ribbon, built once and shared
+// Seaside Strip puts its ramps and loops out in the open squares (plazas, parks, the beach) at random
+// sizes and angles, instead of on the road. Anything standing in the way is cleared.
+const inSquares = () => World.map.id === 'seaside';
+function squareSpot(margin) {
+  const open = World.blocks.filter(b => (b.type === 'plaza' || b.type === 'park' || b.type === 'beach') && !b.boxes.length);
+  if (!open.length) return null;
+  const b = pick(open), hx = (b.x1 - b.x0) / 2 - margin, hz = (b.z1 - b.z0) / 2 - margin;
+  if (hx < 0 || hz < 0) return null;
+  return { x: (b.x0 + b.x1) / 2 + rand(-hx, hx), z: (b.z0 + b.z1) / 2 + rand(-hz, hz) };
+}
+function clearAround(x, z, r) {
+  for (const it of World.props) if (Math.hypot(it.x - x, it.z - z) < r) { it.cleared = true; it.alive = false; it.respawnAt = Infinity; it.batch.show(it, false); }
+}
+const nearFood = (x, z, r) => World.foodSpots.some(f => Math.hypot(f.x - x, f.z - z) < r);
+// the track and rails for a loop of radius R (built per size)
+const loopGeoCache = new Map();
+function loopGeometry(R) {
+  const key = R.toFixed(2); if (loopGeoCache.has(key)) return loopGeoCache.get(key);
   const SEG = 96, pos = [], idx = [];
   for (let i = 0; i <= SEG; i++) {
-    const th = i / SEG * Math.PI * 2, c = stuntPoint(th, LOOP_R + .12);
+    const th = i / SEG * Math.PI * 2, c = stuntPoint(th, R + .12, R);
     pos.push(c.x - LOOP_W / 2, c.y, c.z, c.x + LOOP_W / 2, c.y, c.z);
     if (i < SEG) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
   }
   const ribbon = new THREE.BufferGeometry();
   ribbon.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ribbon.setIndex(idx); ribbon.computeVertexNormals();
-  const railGeo = side => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(
-    Array.from({ length: SEG + 1 }, (_, i) => { const p = stuntPoint(i / SEG * Math.PI * 2, LOOP_R + .2); p.x += side * (LOOP_W / 2 + .1); return p; })), SEG, .22, 6, false);
-  const railL = railGeo(-1), railR = railGeo(1);
-  const used = new Set(), want = World.map.arena ? LOOP_COUNT + 2 : LOOP_COUNT;
-  for (let k = 0; k < 200 && World.stunts.length < want; k++) {
-    let x, z, h;
-    if (World.map.arena) {
+  const rail = side => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(
+    Array.from({ length: SEG + 1 }, (_, i) => { const p = stuntPoint(i / SEG * Math.PI * 2, R + .2, R); p.x += side * (LOOP_W / 2 + .1); return p; })), SEG, .22, 6, false);
+  const g = { ribbon, railL: rail(-1), railR: rail(1) };
+  loopGeoCache.set(key, g); return g;
+}
+function buildStuntLoops(scene) {
+  const deck = new THREE.MeshLambertMaterial({ color: 0x3a4360, side: THREE.DoubleSide, transparent: true, opacity: .55, depthWrite: false }), rail = basic(0xff7b00), post = lam(0x3a4050), pad = basic(0xffffff, { map: LOOP_FADE, transparent: true, depthWrite: false });
+  const used = new Set(), squares = inSquares(), want = World.map.arena ? LOOP_COUNT + 2 : LOOP_COUNT;
+  for (let k = 0; k < 300 && World.stunts.length < want; k++) {
+    let x, z, h, R = LOOP_R;
+    if (squares) {
+      R = rand(5.5, 9);                                         // random sizes in the squares
+      const s = squareSpot(R * .55 + 2); if (!s) continue;
+      x = s.x; z = s.z; h = rand(0, Math.PI * 2);
+      if (pushOutOfBuildings(x, z, R + 2) || nearFood(x, z, R + 6)) continue;
+    } else if (World.map.arena) {
       x = rand(30, SIZE - 30); z = rand(30, SIZE - 30); h = rand(0, Math.PI * 2);
       if (pushOutOfBuildings(x, z, 16)) continue;
     } else {
@@ -470,19 +502,20 @@ function buildStuntLoops(scene) {
       if (pushOutOfBuildings(x, z, RW)) continue;
     }
     if (Math.hypot(x - START.x, z - START.z) < 70) continue;
-    if (World.ramps.some(r => Math.hypot(r.x - x, r.z - z) < 26)) continue;
+    if (World.ramps.some(r => Math.hypot(r.x - x, r.z - z) < (squares ? R + 10 : 26))) continue;
     if (World.stunts.some(l => Math.hypot(l.x - x, l.z - z) < 90)) continue;
-    const g = new THREE.Group();
-    g.add(new THREE.Mesh(ribbon, deck), new THREE.Mesh(railL, rail), new THREE.Mesh(railR, rail));
+    const geo = loopGeometry(R), g = new THREE.Group();
+    g.add(new THREE.Mesh(geo.ribbon, deck), new THREE.Mesh(geo.railL, rail), new THREE.Mesh(geo.railR, rail));
     // two posts and a crossbar hold it up
-    const half = LOOP_SHIFT / 2 + LOOP_W / 2 + .5, top = LOOP_R * 2 + .6;
+    const half = LOOP_SHIFT / 2 + LOOP_W / 2 + .5, top = R * 2 + .6;
     for (const sx of [-half, half]) { const p = new THREE.Mesh(GEO.box, post); p.scale.set(.5, top, .5); p.position.set(sx, top / 2, 0); g.add(p); }
     const bar = new THREE.Mesh(GEO.box, post); bar.scale.set(half * 2 + .5, .5, .5); bar.position.set(0, top, 0); g.add(bar);
     // chevrons on the run-in so you can see where to drive in
     const p = new THREE.Mesh(GEO.plane, pad); p.rotation.y = Math.PI; p.scale.set(LOOP_W * .8, 1, 9); p.position.set(-LOOP_SHIFT / 2, .06, -5.5); g.add(p);
     g.position.set(x, 0, z); g.rotation.y = h; scene.add(g);
     const fx = Math.sin(h), fz = Math.cos(h);
-    World.stunts.push({ x, z, h, fx, fz, sx: fz, sz: -fx, mesh: g });
+    World.stunts.push({ x, z, h, fx, fz, sx: fz, sz: -fx, R, mesh: g });
+    if (squares) clearAround(x, z, R + 5);
   }
 }
 function N_LINES() { return N + 1; }
@@ -490,6 +523,7 @@ function N_LINES() { return N + 1; }
 // Show or hide street props for the player's tier. Locked props are invisible and can't be hit.
 function applyPropTier(tier) {
   for (const it of World.props) {
+    if (it.cleared) continue;   // removed to make room for a ramp or loop
     if (it.minTier > tier) { if (!it.locked) { it.locked = true; it.alive = false; it.batch.show(it, false); } }
     else if (it.locked) { it.locked = false; it.alive = true; it.batch.show(it, true); }
   }

@@ -86,8 +86,7 @@
     </div>
     <nav class="land-nav" aria-label="Menus">
       <button class="nav-btn" data-sheet="missions"><span class="nb-label">Missions</span><span id="missionBadge" class="nb-badge">0/3</span></button>
-      <button class="nav-btn" data-sheet="garage"><span class="nb-label">Garage</span></button>
-      <button class="nav-btn" data-sheet="paint"><span class="nb-label">Paint</span></button>
+      <button class="nav-btn" data-sheet="shop"><span class="nb-label">Shop</span></button>
       <button class="nav-btn" data-sheet="howto"><span class="nb-label">How to play</span></button>
       <button id="steerBtn" class="nav-btn quiet">Steering: Simple</button>
       <a class="nav-btn quiet" href="https://docs.google.com/forms/d/e/1FAIpQLSfWG7rj_qKf1EJ8JzqxfM2jHk3oJ6YjFZEB_8hO8e7AqtwDWw/viewform" target="_blank" rel="noopener">Feedback</a>
@@ -115,13 +114,19 @@
 <section id="sheetWrap" class="sheet-wrap" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
     <header class="sheet-head"><h2 id="sheetTitle">Missions</h2><button id="sheetClose" class="icon-btn close" aria-label="Close">✕</button></header>
+    <div id="shopTabs" class="shop-tabs" hidden>
+      <div class="st-tabs" role="tablist" aria-label="Shop">
+        <button class="st-tab" role="tab" data-tab="garage" aria-selected="true">Upgrades</button>
+        <button class="st-tab" role="tab" data-tab="paint" aria-selected="false">Paint</button>
+      </div>
+      <span class="st-coins" aria-label="Coins">◉ <b id="shopCoins">0</b></span>
+    </div>
     <div class="sheet-body">
       <div class="tabpane" data-pane="missions">
         <div id="missionList" class="missions"></div>
         <p id="setNote" class="set-note"></p>
       </div>
       <div class="tabpane" data-pane="garage" hidden>
-        <p class="set-note">Coins <b id="garageCoins">0</b></p>
         <div id="garageList" class="garage"></div>
       </div>
       <div class="tabpane" data-pane="paint" hidden>

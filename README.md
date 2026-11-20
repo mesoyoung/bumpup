@@ -6,12 +6,14 @@ An arcade smash-and-grow driving game that runs in the browser, on phone or desk
 
 ## How it plays
 
+- **Two modes.** **Rampage** (default): 3-minute runs where every smash is a bite; enough bites and you evolve into the next size in a burst that blows nearby traffic away. Keep eating or you starve. **Classic**: endless, you grow by score.
 - **Rings show what you can hit.** Green: smash it. Amber: it bounces you, unless you boost through it. Red: it wrecks you. Things too small to refuel you have no ring.
 - **One Tank bar** does the work of fuel and health. It drains as you drive and when you bump into things, and refills when you smash. Food trucks top it up.
-- **Boost** for double points and a fuller refill. Boosting at speed turns on **Power Ram**, which smashes through amber objects.
+- **Boost** needs charge: wreck vehicles and slide or take hard corners to fill the ring around the Boost button. Boosting gives double points, and at speed turns on **Power Ram**, which smashes through amber objects.
+- **Loop the loops** on every map: boost all the way round for big points, or roll back and fall off.
 - **Combos, gold targets and police.** Chain smashes for a multiplier, hunt gold cars and people for 5x points, and the police escalate as you cause trouble.
 - **Four maps**, easiest first: **Salt Flats** (open desert, no roads), **Seaside Strip** (plazas, car parks and a beach), **The Docks** (container yards) and **Downtown** (a tight grid of towers). Each can be played by day or night, and harder maps pay more coins (x0.5, x0.75, x1, x1.5).
-- **Between runs:** missions that level you up, garage upgrades (tank, armour, nitro, combo timer) and 14 paint designs.
+- **Between runs:** missions that level you up, and a Shop with upgrades (tank, armour, nitro, combo timer) and 14 paint designs.
 - **First-run tutorial** teaches steering. Replay it from How to play.
 
 ## Controls
@@ -19,7 +21,7 @@ An arcade smash-and-grow driving game that runs in the browser, on phone or desk
 | | Phone | Keyboard |
 |---|---|---|
 | Steer | Hold the left or right side of the screen; hold longer to turn harder | ← → |
-| Boost | Tap the Boost button for a burst, or hold it | Shift or Space |
+| Boost | Tap the Boost button (bottom centre) for a burst, or hold it | Shift or Space |
 | Pause | II button | P or Esc |
 
 **Steering** has three settings on the landing screen:

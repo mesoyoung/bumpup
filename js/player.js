@@ -160,7 +160,7 @@ const Player = {
   // ---- riding a loop: speed along the track = boost push - gravity. Too slow on the way up and you
   // roll back; too slow over the top and you fall off, land flat, and get put back at the entrance.
   updateLoop(dt, onTrick) {
-    const L = this.loop, S = L.S, R = LOOP_R, g = GRAVITY, TAU = Math.PI * 2;
+    const L = this.loop, S = L.S, R = S.R || LOOP_R, g = GRAVITY, TAU = Math.PI * 2;
     if (Input.boost) this.boostHold = Math.max(this.boostHold || 0, BOOST_LINGER);
     else this.boostHold = Math.max(0, (this.boostHold || 0) - dt);
     this.boosting = L.state === 'ride' && (Input.boost || this.boostHold > 0) && this.charge > 0 && this.fuel > 0;
@@ -186,7 +186,7 @@ const Player = {
         const w = L.v / R, vl = LOOP_SHIFT / TAU * w, vy = L.v * Math.sin(L.th), vz = L.v * c;
         L.state = 'fall'; L.vx = S.sx * vl + S.fx * vz; L.vz = S.sz * vl + S.fz * vz; L.vy = vy; L.spin = 2.5;
       }
-      const p = stuntPoint(clamp(L.th, 0, TAU), R), [x, z] = toWorld(p.x, p.z);
+      const p = stuntPoint(clamp(L.th, 0, TAU), R, R), [x, z] = toWorld(p.x, p.z);
       Object.assign(this, { x, z, y: p.y, h: S.h, pitch: -L.th, fx: S.fx, fz: S.fz, vx: S.fx * Math.abs(L.v), vz: S.fz * Math.abs(L.v) });
     } else if (L.state === 'fall') {
       L.vy -= g * dt;
@@ -324,8 +324,8 @@ const Player = {
     // ---- drive into a loop's entrance lane, facing the right way, and you're on it ----
     if (grounded && vF > 6 && (this.loopCD <= 0 || this.boosting)) for (const S of World.stunts) {
       const dx = this.x - S.x, dz = this.z - S.z, along = dx * S.fx + dz * S.fz, lat = dx * S.sx + dz * S.sz;
-      if (along < -1.5 || along > .6 || Math.abs(lat + LOOP_SHIFT / 2) > LOOP_W / 2) continue;
-      if (fx * S.fx + fz * S.fz < .8) continue;   // within ~35° of the loop's direction
+      if (along < -1.5 || along > .6 || Math.abs(lat + LOOP_SHIFT / 2) > LOOP_W / 2 + 1) continue;
+      if (fx * S.fx + fz * S.fz < .5) continue;   // within ~60° of the loop's direction: it lines you up
       this.loop = { S, th: 0, v: vF, state: 'ride', t: 0 }; this.drifting = false; this.driftT = 0;
       onTrick('loopIn');
       break;
@@ -335,7 +335,7 @@ const Player = {
     if (grounded && vF > 8) for (const r of World.ramps) {
       if (!circleOBB(this.x, this.z, .5, r.x, r.z, r.rot, r.hl, r.hw)) continue;
       const along = this.vx * Math.sin(r.rot) + this.vz * Math.cos(r.rot);
-      if (along > 8) { this.vy = along * .42 + 4; this.air = 0; this.fromRamp = true; onTrick('launch'); }
+      if (along > 8) { this.vy = along * .42 * (r.lift || 1) + 4; this.air = 0; this.fromRamp = true; onTrick('launch'); }
       break;
     }
     if (this.y > 0 || this.vy > 0) {

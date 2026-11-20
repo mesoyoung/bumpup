@@ -81,7 +81,7 @@ const Game = {
     for (const c of G.traffic) c.remove();
     for (const p of G.police) p.remove();
     G.traffic = []; G.police = [];
-    for (const it of World.props) { it.locked = false; if (!it.alive) { it.alive = true; it.batch.show(it, true); } }
+    for (const it of World.props) { if (it.cleared) continue; it.locked = false; if (!it.alive) { it.alive = true; it.batch.show(it, true); } }
     applyPropTier(0);
     for (const p of Peds.list) spawnPed(p, Player.x, Player.z, 20);
     for (const d of Debris.list) d.scene.remove(d.obj);
@@ -634,7 +634,7 @@ const Game = {
     const back = camD * (1 + over * .3);                                       // boost pulls the camera back
     const want = new THREE.Vector3(P.x - Math.sin(camYaw) * back, camH * (1 - over * .12) + P.y * .7, P.z - Math.cos(camYaw) * back);
     // on a loop: pull up and back so you can watch the car go round (the track is see-through)
-    if (P.loop) { const S = P.loop.S, lat = -LOOP_SHIFT / 2 - 5; want.set(S.x + S.sx * lat - S.fx * 17, LOOP_R * 2 + 3, S.z + S.sz * lat - S.fz * 17); }
+    if (P.loop) { const S = P.loop.S, R = S.R || LOOP_R, lat = -LOOP_SHIFT / 2 - 5; want.set(S.x + S.sx * lat - S.fx * (R * 2 + 2), R * 2 + 3, S.z + S.sz * lat - S.fz * (R * 2 + 2)); }
     camPos.lerp(want, Math.min(1, dt * (P.loop ? 3 : 9)));
     const wall = pushOutOfBuildings(camPos.x, camPos.z, .6);                    // never end up inside a tower
     if (wall) { camPos.x = wall.x; camPos.z = wall.z; }
@@ -647,7 +647,7 @@ const Game = {
     camera.position.x += P.fx * G.kick; camera.position.z += P.fz * G.kick; camera.position.y -= G.kick * .25;   // lurch into a hit
     G.kick *= Math.exp(-dt * 11); G.fovKick *= Math.exp(-dt * 7);
     look.set(P.x + P.fx * 7, 1.1 + T.camH * .15 + P.y * .8, P.z + P.fz * 7);
-    if (P.loop) { const S = P.loop.S; look.set(S.x, LOOP_R * .9, S.z); }
+    if (P.loop) { const S = P.loop.S; look.set(S.x, (S.R || LOOP_R) * .9, S.z); }
     camera.lookAt(look);
     camera.rotateZ(clamp(P.yawRate * .035, -.1, .1));                         // lean into turns
     const base = innerWidth < innerHeight ? 74 : 60;
@@ -778,6 +778,7 @@ const Game = {
   }));
   $('tutorAgain').addEventListener('click', () => { store.set('tutorDone', false); UI.closeSheet(); UI.toast('The tutorial will play on your next drive'); });
   document.querySelectorAll('.nav-btn[data-sheet]').forEach(b => b.addEventListener('click', () => UI.openSheet(b.dataset.sheet)));
+  document.querySelectorAll('.st-tab').forEach(t => t.addEventListener('click', () => { UI.shopTab = t.dataset.tab; UI.openSheet('shop'); }));
   $('sheetClose').addEventListener('click', () => UI.closeSheet());
   $('sheetWrap').addEventListener('click', e => { if (e.target === $('sheetWrap')) UI.closeSheet(); });
   addEventListener('keydown', e => {
