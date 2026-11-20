@@ -157,6 +157,28 @@ const Player = {
     this.build(this.scene, this.design);
     this.grow = 0; // play the growth animation
   },
+  // ---- the start of every run: on the launch deck outside the city ----
+  placeOnPad() {
+    const S = SPAWN;
+    Object.assign(this, { x: S.xEnd - S.rampLen - S.deckLen + 4, z: S.z, y: S.deckY, vy: 0, h: Math.PI / 2, vx: 0, vz: 0, fx: 1, fz: 0, pitch: 0, outside: true });
+    this.intro = { s: 4 };
+    this.sync();
+  },
+  // drives itself down the deck and up the kicker, then you're airborne and it's yours
+  updateIntro(dt, onTrick) {
+    const S = SPAWN, I = this.intro, total = S.deckLen + S.rampLen, tan = S.rise / S.rampLen;
+    const v = Math.min(S.launchV, (this.speed || 0) + 22 * dt);
+    I.s += v * dt;
+    const up = Math.max(0, I.s - S.deckLen);
+    Object.assign(this, { x: S.xEnd - total + I.s, y: S.deckY + up * tan, vx: v, vz: 0, h: Math.PI / 2, fx: 1, fz: 0, speed: v, yawRate: 0, lateral: 0, roll: 0 });
+    this.pitch = up > 0 ? -Math.atan(tan) : 0;
+    this.boosting = v > 30;                                    // flames for the run-up (free)
+    if (I.s >= total) {
+      const a = Math.atan(tan);
+      Object.assign(this, { vx: v * Math.cos(a), vy: v * Math.sin(a) + 2, intro: null, fromRamp: true, air: 0, boosting: false, lastFwd: v });
+      onTrick('launch');
+    }
+  },
   // ---- riding a loop: speed along the track = boost push - gravity. Too slow on the way up and you
   // roll back; too slow over the top and you fall off, land flat, and get put back at the entrance.
   updateLoop(dt, onTrick) {
@@ -214,6 +236,7 @@ const Player = {
   // onWall(impactSpeed), onTrick(type, value)
   update(dt, onWall, onTrick) {
     this.loopCD = Math.max(0, (this.loopCD || 0) - dt);
+    if (this.intro) { this.updateIntro(dt, onTrick); this.prevBoost = Input.boost; this.sync(); return; }
     if (this.loop) { this.updateLoop(dt, onTrick); this.prevBoost = Input.boost; this.sync(); return; }
     const T = TIERS[this.tier];
     const grounded = this.y <= .02;
@@ -347,8 +370,9 @@ const Player = {
       }
     }
 
-    // ---- buildings and city edge ----
-    for (const c of this.circles()) {
+    // ---- buildings and city edge (skipped while flying in from the launch deck) ----
+    if (this.outside && (this.x > -SW + 2 || this.y <= .02)) this.outside = false;
+    if (!this.outside) for (const c of this.circles()) {
       const hit = pushOutOfBuildings(c.x, c.z, c.r);
       if (!hit) continue;
       this.x += hit.x - c.x; this.z += hit.z - c.z;

@@ -12,6 +12,16 @@ const EXT = 80;           // ground beyond the outer roads (m)
 const LANE = 3.25;        // lane centre offset from the road centre (m)
 const PED_PATH = (RW + SW) / 2;
 const START = { x: (N / 2) * CELL + CELL * .4, z: (N / 2) * CELL };   // on the centre line, clear of traffic lanes
+// Every run starts on a raised launch deck just outside the west edge of the city, lined up with the
+// centre road. The car drives itself down the deck, up the ramp, and flies into the map.
+const SPAWN = {
+  z: (N / 2) * CELL,   // in line with the centre road
+  xEnd: -30,           // where the ramp lip is (the city edge is at x = -SW)
+  deckLen: 34,         // the flat run-up (m)
+  rampLen: 8, rise: 2, // the kicker at the end
+  deckY: 7,            // deck height (m)
+  launchV: 40,         // speed off the lip (m/s): lands you on the road a little way into the city
+};
 
 // ---- Player tiers (design draft: 4 tiers, mid-run growth) ----
 // smash level = tier index + 1. An object of size S is:

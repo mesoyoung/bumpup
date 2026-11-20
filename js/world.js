@@ -282,6 +282,7 @@ function buildMap(scene, map, layout) {
   buildProps(scene);
   buildRamps(scene);
   buildStuntLoops(scene);
+  buildSpawnPad(scene);
 }
 
 // ---------- sidewalk props ----------
@@ -519,6 +520,39 @@ function buildStuntLoops(scene) {
   }
 }
 function N_LINES() { return N + 1; }
+
+// ---------- the launch deck every run starts from, with a little garage beside it ----------
+function buildSpawnPad(scene) {
+  const S = SPAWN, g = new THREE.Group();
+  const deckMat = lam(0x2b2f3c), rail = basic(0xff7b00), pillar = lam(0x3a4050), stripe = basic(0xffd23a);
+  const x0 = S.xEnd - S.rampLen - S.deckLen, deckW = 22, laneZ = S.z, houseZ = S.z - 7.5;
+  const box = (mat, sx, sy, sz, x, y, z) => { const m = new THREE.Mesh(GEO.box, mat); m.scale.set(sx, sy, sz); m.position.set(x, y, z); g.add(m); return m; };
+  // deck, edge rails and legs
+  box(deckMat, S.deckLen, .6, deckW, x0 + S.deckLen / 2, S.deckY - .3, S.z - 3);
+  box(rail, S.deckLen, .35, .25, x0 + S.deckLen / 2, S.deckY + .2, S.z + deckW / 2 - 3);
+  box(rail, S.deckLen, .35, .25, x0 + S.deckLen / 2, S.deckY + .2, S.z - deckW / 2 - 3);
+  for (let x = x0 + 2; x < x0 + S.deckLen; x += 8) for (const z of [S.z + deckW / 2 - 4, S.z - deckW / 2 - 2]) box(pillar, .9, S.deckY, .9, x, S.deckY / 2, z);
+  // lane stripes and chevrons down the run-up
+  for (let x = x0 + 3; x < x0 + S.deckLen - 2; x += 5) { box(stripe, 2.2, .05, .25, x, S.deckY + .03, laneZ + 3); box(stripe, 2.2, .05, .25, x, S.deckY + .03, laneZ - 3); }
+  const pad = new THREE.Mesh(GEO.plane, basic(0xffffff, { map: LOOP_FADE, transparent: true, depthWrite: false }));
+  pad.rotation.y = -Math.PI / 2; pad.scale.set(4, 1, 10); pad.position.set(x0 + S.deckLen - 7, S.deckY + .04, laneZ); g.add(pad);
+  // the kicker ramp
+  const a = Math.atan2(S.rise, S.rampLen), slope = Math.hypot(S.rampLen, S.rise);
+  const r = box(deckMat, slope, .5, 8, S.xEnd - S.rampLen / 2, S.deckY + S.rise / 2 - .25, laneZ); r.rotation.z = a;
+  for (const z of [laneZ - 4, laneZ + 4]) { const e = box(rail, slope, .3, .2, S.xEnd - S.rampLen / 2, S.deckY + S.rise / 2 + .05, z); e.rotation.z = a; }
+  box(pillar, .9, S.deckY + S.rise, 8, S.xEnd - .45, (S.deckY + S.rise) / 2, laneZ);
+  // the garage: walls, a pitched roof, a roller door facing the lane, a lit window and a neon strip
+  const hx = x0 + 9, hy = S.deckY;
+  box(lam(0xd9cdb8), 10, 4.6, 7, hx, hy + 2.3, houseZ);
+  for (const s of [-1, 1]) { const roof = box(lam(0x8c3b2e), 10.6, .35, 4.6, hx, hy + 5.4, houseZ + s * 1.75); roof.rotation.x = s * .5; }
+  box(lam(0xd9cdb8), 10, 1.6, .4, hx, hy + 5.1, houseZ);   // gable fill
+  const door = box(lam(0x4a5260), 5, 3.4, .2, hx - 1.5, hy + 1.7, houseZ + 3.55);
+  for (let k = 0; k < 6; k++) box(lam(0x3a414d), 5, .08, .25, hx - 1.5, hy + .4 + k * .55, houseZ + 3.62);
+  box(lam(0xffd38a, 0xffd38a, .9), 1.6, 1.2, .2, hx + 3, hy + 2.6, houseZ + 3.55);
+  box(basic(0xff2f92), 10.2, .18, .18, hx, hy + 4.7, houseZ + 3.6);
+  scene.add(g);
+  World.spawnPad = g;
+}
 
 // Show or hide street props for the player's tier. Locked props are invisible and can't be hit.
 function applyPropTier(tier) {

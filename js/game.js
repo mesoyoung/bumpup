@@ -145,6 +145,7 @@ const Game = {
   function startRun() {
     Sound.init(); Sound.resume();
     Player.reset(scene, paintDesign());
+    Player.placeOnPad();                                  // every run starts on the launch deck
     Object.assign(G, {
       score: 0, combo: 0, comboTimer: 0, pending: 0, bestCombo: 0, biggest: null, biggestSize: 0,
       counts: {}, upgrades: [{ tier: 0, time: 0 }], time: 0, heat: 0, stars: 0, lastSmash: 0,
@@ -162,7 +163,8 @@ const Game = {
     UI.show(null);
     Game.state = 'play';
     G.coachUntil = G.mode === 'rampage' ? 25 : 4; G.redTips = 0; G.coachScan = 0; G.ramTold = false; G.lastBoostAt = 0;
-    if (!store.get('tutorDone', false)) tutorStart(); else runIntro();
+    // the tutorial / intro banner wait until you've landed in the city
+    G.afterLanding = !store.get('tutorDone', false) ? tutorStart : runIntro;
   }
   function runIntro() {
     const touchUI = matchMedia('(pointer: coarse)').matches;
@@ -636,7 +638,7 @@ const Game = {
     // on a loop: pull up and back so you can watch the car go round (the track is see-through)
     if (P.loop) { const S = P.loop.S, R = S.R || LOOP_R, lat = -LOOP_SHIFT / 2 - 5; want.set(S.x + S.sx * lat - S.fx * (R * 2 + 2), R * 2 + 3, S.z + S.sz * lat - S.fz * (R * 2 + 2)); }
     camPos.lerp(want, Math.min(1, dt * (P.loop ? 3 : 9)));
-    const wall = pushOutOfBuildings(camPos.x, camPos.z, .6);                    // never end up inside a tower
+    const wall = P.outside || P.intro ? null : pushOutOfBuildings(camPos.x, camPos.z, .6);   // never end up inside a tower
     if (wall) { camPos.x = wall.x; camPos.z = wall.z; }
     camera.position.copy(camPos);
     // rumble that grows with speed, plus impact shake
@@ -689,10 +691,11 @@ const Game = {
         for (const k in World.batches) if (World.batches[k].threat === 'bounce') World.batches[k].ringMat.opacity = o;
       }
       collide();
+      if (G.afterLanding && !Player.intro && Player.y <= .02) { const f = G.afterLanding; G.afterLanding = null; f(); }
       tutorUpdate(dt);
       if (!G.tutor) coach();
       if (playing && Player.alive && Player.fuel <= 0 && Player.speed < 1.5) die('Tank ran dry');
-      if (G.mode === 'rampage' && playing && Player.alive && !G.tutor) {
+      if (G.mode === 'rampage' && playing && Player.alive && !G.tutor && !G.afterLanding) {   // the clock starts once you've landed
         if (G.time > RAMPAGE.grace) Player.hunger = RAMPAGE.hunger;
         G.timeLeft -= dt; if (G.timeLeft <= 0) { G.timeLeft = 0; timeUp(); }
       }
