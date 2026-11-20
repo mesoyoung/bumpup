@@ -767,3 +767,11 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
 .hud-map #minimap { grid-area: map; }
 .hud-map #pauseBtn { grid-area: pause; }
 .hud-map .stars { grid-area: stars; }
+
+/* sideways game over: a slim feedback link just above the buttons, for the playtest */
+@media (orientation: landscape) and (max-height: 500px) {
+  #overScreen .feedback-cta { display: flex; grid-column: 2; grid-row: 5; align-self: end; flex-wrap: nowrap; padding: 7px 12px; font-size: 12px; border-radius: 10px; }
+  #overScreen .feedback-cta { justify-content: center; }
+  #overScreen .feedback-cta span { display: none; }
+  #overScreen .feedback-cta b { font-size: 13px; }
+}
