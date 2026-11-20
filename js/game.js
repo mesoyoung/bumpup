@@ -131,7 +131,7 @@ const Game = {
     Debris.list = []; emitters.length = 0;
     for (const s of Shocks.list) s.scene.remove(s.m); Shocks.list = [];
     clearWorld(scene); buildWorld(scene, map); applyPalette(map);
-    Player.x = START.x; Player.z = START.z;
+    Player.placeOnPad(); Player.intro = null;
     for (let i = 0; i < TRAFFIC_COUNT; i++) spawnTraffic(0);
     spawnParked();
     for (const p of Peds.list) spawnPed(p, START.x, START.z, 20);
@@ -219,6 +219,7 @@ const Game = {
   // The landing screen is the live city: your car waits on the centre line while traffic drives past.
   function parkCar() {
     Player.reset(scene, paintDesign()); Player.alive = false; Player.speed = 0;
+    Player.placeOnPad(); Player.intro = null;            // parked on the launch deck, ready to go
     dummy.x = Player.x; dummy.z = Player.z;
   }
   function toTitle() {
@@ -615,8 +616,8 @@ const Game = {
       // slow showcase sweep behind the parked car, looking down the street
       titleA += dt * .22;
       const P = Player, a = P.h + Math.PI + Math.sin(titleA) * .9, r = 8.5;
-      camera.position.set(P.x + Math.sin(a) * r, 3.1 + Math.sin(titleA * .7) * .4, P.z + Math.cos(a) * r);
-      camera.lookAt(P.x + P.fx * 3, .6, P.z + P.fz * 3);
+      camera.position.set(P.x + Math.sin(a) * r, P.y + 3.1 + Math.sin(titleA * .7) * .4, P.z + Math.cos(a) * r);   // same angle, up on the deck
+      camera.lookAt(P.x + P.fx * 3, P.y + .6, P.z + P.fz * 3);
       const base = innerWidth < innerHeight ? 74 : 60;
       camera.fov += (base - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix();
       return;
