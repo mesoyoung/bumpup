@@ -26,8 +26,24 @@ function initInput(canvas) {
     Input.touch = null; Input.boost = false; Input.brake = false;
     hint.classList.remove('on', 'boost', 'brake'); knob.style.transform = '';
   }
+  // ---- the steering wheel (bottom-left): slide your thumb left or right across it ----
+  const wheel = $('wheel'), wheelArt = $('wheelArt');
+  const wheelOff = () => { Input.wheel = null; wheel.classList.remove('held'); wheelArt.style.transform = ''; };
+  const wheelAt = e => {
+    const r = wheel.getBoundingClientRect(), half = r.width / 2;
+    const d = (e.clientX - (r.left + half)) / (half * .8);
+    Input.wheel = { id: e.pointerId, s: Math.abs(d) < .08 ? 0 : clamp(d, -1, 1) };
+    wheelArt.style.transform = `rotate(${Input.wheel.s * WHEEL_TURN}deg)`;
+  };
+  wheel.addEventListener('pointerdown', e => { e.preventDefault(); wheel.classList.add('held'); wheelAt(e); try { wheel.setPointerCapture(e.pointerId); } catch (err) {} });
+  wheel.addEventListener('pointermove', e => { if (Input.wheel && e.pointerId === Input.wheel.id) wheelAt(e); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => wheel.addEventListener(ev, e => { if (Input.wheel && e.pointerId === Input.wheel.id) wheelOff(); }));
+  wheel.addEventListener('contextmenu', e => e.preventDefault());
+  addEventListener('blur', wheelOff);
+
   canvas.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse') return;
+    if (Settings.steer === 'wheel') return;   // Wheel steering: the screen itself is hands-off
     e.preventDefault();
     Input.pointers.set(e.pointerId, e.clientX);
     const t = now(), L = Input.lastTap;
@@ -91,7 +107,8 @@ function readInput(dt) {
   Input.kSteer = ks ? clamp(Input.kSteer + ks * dt * 5, -1, 1) : 0;
   if (ks && Math.sign(Input.kSteer) !== ks) Input.kSteer = ks * .2;
   let ts = 0;
-  if (T && T.cx != null) {
+  if (Settings.steer === 'wheel') ts = Input.wheel ? Input.wheel.s : 0;
+  else if (T && T.cx != null) {
     if (Settings.steer === 'simple') {
       const side = simpleSide(T.cx);
       if (!side) Input.tSteer = 0;

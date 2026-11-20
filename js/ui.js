@@ -245,6 +245,8 @@ const UI = {
   },
 
   // ---------- title screen ----------
+  // the steering wheel shows on touch screens when Wheel steering is picked
+  wheel() { $('wheel').hidden = !(matchMedia('(pointer: coarse)').matches && Settings.steer === 'wheel'); },
   title(best, coins, paintId, owned) {
     $('bestScore').textContent = fmt(best);
     $('coins').textContent = fmt(coins);

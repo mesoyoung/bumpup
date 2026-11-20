@@ -68,6 +68,12 @@ const Full = {
     const b = $('fsBtn'); if (b) b.addEventListener('click', () => this.toggle());
     const p = $('fsPauseBtn'); if (p) p.addEventListener('click', () => this.exit());
     const r = $('fsRow'); if (r) r.addEventListener('click', () => this.toggle());
+    // phones held upright: suggest turning sideways (hidden by CSS once they do)
+    const rot = $('rotHint');
+    if (rot) {
+      rot.hidden = !this.touch || store.get('rotHintDone', false);
+      $('rotHintClose').addEventListener('click', () => { rot.hidden = true; store.set('rotHintDone', true); });
+    }
     const hint = $('iosHint');
     if (hint) {
       hint.hidden = !this.wantsIosHint();

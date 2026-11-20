@@ -176,7 +176,7 @@ const Game = {
       mode: Settings.mode, bites: 0, timeLeft: RAMPAGE.time, bonusCoins: 0, evolve: null, boss: null, bossAngry: false, won: null,
     });
     Player.hunger = G.mode === 'rampage' ? 0 : 1;   // Rampage: a few seconds' grace, then hungry
-    Ram.on = false; G.tutor = null; Player.noDrain = false; $('tutor').hidden = true;
+    Ram.on = false; G.tutor = null; Player.noDrain = false; $('tutor').hidden = true; $('wheel').classList.remove('teach'); UI.wheel();
     scene.remove(evolveOrb);
     resetWorld();
     Missions.runStart();
@@ -207,8 +207,9 @@ const Game = {
   }
   function tutorShow() {
     const touchUI = matchMedia('(pointer: coarse)').matches, s = G.tutor.step, el = $('tutor');
-    const simple = Settings.steer === 'simple';
-    const how = {
+    const simple = Settings.steer === 'simple', wheel = touchUI && Settings.steer === 'wheel';
+    $('wheel').classList.toggle('teach', wheel);
+    const how = wheel ? { left: 'Slide your thumb to the <b>left of the wheel</b>', right: 'Now slide it to the <b>right</b>' }[s] : {
       left: touchUI ? (simple ? 'Press and hold the <b>left side</b> of the screen' : 'Touch and <b>drag left</b>') : 'Press and hold <kbd>←</kbd>',
       right: touchUI ? (simple ? 'Press and hold the <b>right side</b>' : 'Touch and <b>drag right</b>') : 'Press and hold <kbd>→</kbd>',
     }[s];
@@ -235,7 +236,7 @@ const Game = {
     }
     T.step = 'done'; T.wait = false; Player.noDrain = false; store.set('tutorDone', true);
     setTimeout(() => {
-      $('tutor').hidden = true; $('tutor').classList.remove('nice'); G.tutor = null;
+      $('tutor').hidden = true; $('tutor').classList.remove('nice'); $('wheel').classList.remove('teach'); G.tutor = null;
       if (Game.state !== 'play') return;
       Sound.upgrade(); UI.banner('GO!', 'Smash anything with a green ring.', 'tier go');
       setTimeout(() => { if (Game.state === 'play') runIntro(); }, 2200);
@@ -865,10 +866,10 @@ const Game = {
   $('settingsBtn').addEventListener('click', () => UI.openSheet('settings'));
   document.querySelectorAll('.set-row[data-open]').forEach(b => b.addEventListener('click', () => UI.openSheet(b.dataset.open)));
   document.querySelectorAll('[data-steer]').forEach(b => b.addEventListener('click', () => {
-    Settings.steer = b.dataset.steer; store.set('steer', Settings.steer);
+    Settings.steer = b.dataset.steer; store.set('steer2', Settings.steer); UI.wheel();
     Missions.swapDrift();
     UI.title(curBest(), save.coins, save.paint, save.owned);
-    UI.toast({ simple: 'Simple: hold left or right of the screen to turn', easy: 'Drag: drag from where you touch to turn', drift: 'Drift: drag to turn; hard turns at speed slide' }[Settings.steer]);
+    UI.toast({ wheel: 'Wheel: slide your left thumb across the wheel to turn', simple: 'Simple: hold left or right of the screen to turn', easy: 'Drag: drag from where you touch to turn', drift: 'Drift: drag to turn; hard turns at speed slide' }[Settings.steer]);
   }));
   $('muteBtn').addEventListener('click', () => { Sound.setMuted(!Sound.muted); UI.title(curBest(), save.coins, save.paint, save.owned); });
   $('paints').addEventListener('click', e => {

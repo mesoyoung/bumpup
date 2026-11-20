@@ -52,6 +52,7 @@ const TAP_GAP = .26;           // max seconds between taps for a double-tap
 const SWIPE_PX = 38;           // vertical movement that counts as a swipe
 const SWIPE_TIME = .32;        // a swipe must happen this soon after touching (s)
 const STEER_PX = 55;           // finger drag for full steering lock (Drag / Drift steering)
+const WHEEL_TURN = 110;        // Wheel steering: how far the wheel graphic turns at full lock (degrees)
 const STEER_START = .15;       // Simple steering: how hard a fresh press turns...
 const STEER_RAMP = .7;         // ...and how many seconds of holding it takes to reach full lock
 
@@ -191,9 +192,9 @@ function weighted(list) {
   for (const [k, w] of list) { if ((r -= w) <= 0) return k; }
   return list[0][0];
 }
-// Player settings. steer: 'simple' (touch: hold left or right of centre to turn; no slides),
+// Player settings. steer: 'wheel' (touch: a steering wheel under your left thumb; no slides), 'simple' (touch: hold left or right of centre to turn; no slides),
 //   'easy' (shown as Drag: drag from where you touch; no slides), 'drift' (drag; hard turns at speed slide)
-const Settings = { steer: 'simple', mode: 'rampage' };
+const Settings = { steer: 'wheel', mode: 'rampage' };
 
 // ---- Rampage mode: a short run with one goal. Eat, grow, don't starve. ----
 // ---- Growing up is an evolution: a white orb swells and pulses around you, then bursts ----
@@ -228,5 +229,5 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('bumpup.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('bumpup.' + k, JSON.stringify(v)); } catch (e) {} },
 };
-Settings.steer = store.get('steer', 'simple');
+Settings.steer = store.get('steer2', 'wheel');   // 'steer2': the wheel became the default, so older saved choices start fresh
 Settings.mode = 'rampage';   // Classic is switched off while we playtest Rampage

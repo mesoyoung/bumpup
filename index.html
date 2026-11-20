@@ -29,12 +29,6 @@
     <div id="combo" class="combo"><span id="comboX">x2</span><span class="combo-track"><span id="comboBar"></span></span></div>
   </div>
 
-  <div class="hud-up">
-    <div id="tierTrack" class="tier-track"></div>
-    <div class="up-bar"><span id="upFill"></span></div>
-    <div class="up-row"><span id="upLabel" class="up-label">SUV at 1,000</span><span id="pending" class="pending">+0</span></div>
-  </div>
-
   <div class="hud-map">
     <canvas id="minimap" width="150" height="150" aria-label="Minimap"></canvas>
     <div id="stars" class="stars" aria-label="Wanted level"><i></i><i></i><i></i></div>
@@ -43,6 +37,11 @@
 
   <div class="hud-vitals">
     <div class="vital"><span class="lbl">Tank</span><div id="fuelBar" class="hpbar" role="meter" aria-label="Tank"><span id="fuelTrail" class="hp-trail"></span><span id="fuelGain" class="hp-gain"></span><span id="fuelFill" class="hp-fill"></span><span class="hp-ticks"></span></div></div>
+    <div class="hud-up">
+      <div id="tierTrack" class="tier-track"></div>
+      <div class="up-bar"><span id="upFill"></span></div>
+      <div class="up-row"><span id="upLabel" class="up-label">SUV at 1,000</span><span id="pending" class="pending">+0</span></div>
+    </div>
     <div id="bossBar" class="boss-bar" hidden><span class="bb-name">☠ Iron Hauler</span><span id="bossHp" class="hpbar boss-hp"><span id="bossTrail" class="hp-trail"></span><span id="bossFill" class="hp-fill"></span></span><span id="bossInfo" class="bb-info"></span></div>
   </div>
 
@@ -56,6 +55,7 @@
     <span><b>II button</b> pause</span>
   </div>
   <div id="steerHint" class="steer-hint"><span id="steerKnob"></span></div>
+  <div id="wheel" class="wheel" role="slider" aria-label="Steering wheel: slide left or right" hidden><span id="wheelArt" class="wheel-art"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="9"/><circle cx="50" cy="50" r="11" fill="currentColor"/><path d="M10 46 Q30 40 39 47 M90 46 Q70 40 61 47 M50 61 L50 91" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round"/><rect x="45" y="4" width="10" height="11" rx="3" fill="#ffb347"/></svg></span></div>
   <button id="boostBtn" class="boost-btn" aria-label="Hold to boost"><span>Boost</span></button>
 
   <div id="missionPop" class="mission-pop"><span class="mp-head">Mission complete</span><span id="mpText"></span><b id="mpReward"></b></div>
@@ -90,6 +90,7 @@
     </div>
   </header>
   <div class="land-bottom">
+    <div id="rotHint" class="ios-hint rot-hint" hidden><span><b>Tip:</b> turn your phone sideways for a wider view</span><button id="rotHintClose" aria-label="Dismiss">✕</button></div>
     <div id="iosHint" class="ios-hint" hidden><span>Play full screen: tap <b>Share</b>, then <b>Add to Home Screen</b></span><button id="iosHintClose" aria-label="Dismiss">✕</button></div>
     <p class="tagline">Smash anything smaller. Grow into something bigger.</p>
     <div class="map-row">
@@ -139,6 +140,7 @@
       <div class="tabpane" data-pane="settings" hidden>
         <h3 class="set-h">Steering</h3>
         <div class="seg" role="group" aria-label="Steering">
+          <button data-steer="wheel"><b>Wheel</b><small>Thumb on the wheel</small></button>
           <button data-steer="simple"><b>Simple</b><small>Hold left / right</small></button>
           <button data-steer="easy"><b>Drag</b><small>Drag to steer</small></button>
           <button data-steer="drift"><b>Drift</b><small>Drag, slides on hard turns</small></button>
@@ -155,7 +157,7 @@
           <span><i class="ring wreck"></i>Red: avoid</span>
         </div>
         <ul class="howto-list">
-          <li><b>Steer</b> Hold left or right <span class="kb">(← →)</span></li>
+          <li><b>Steer</b> Slide your thumb across the wheel <span class="kb">(← →)</span></li>
           <li><b>Boost</b> Tap the Boost button <span class="kb">(Shift)</span></li>
           <li><b>Charge boost</b> Wreck cars, take hard corners</li>
           <li><b>Grow</b> Smash things. Parking lots (P) are full of food</li>
