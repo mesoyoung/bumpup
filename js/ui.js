@@ -246,7 +246,7 @@ const UI = {
 
   // ---------- title screen ----------
   // the steering wheel shows on touch screens when Wheel steering is picked
-  wheel() { $('wheel').hidden = !(matchMedia('(pointer: coarse)').matches && Settings.steer === 'wheel'); },
+  wheel() { const t = matchMedia('(pointer: coarse)').matches; $('wheel').hidden = !(t && Settings.steer === 'wheel'); $('steerBtns').hidden = !(t && Settings.steer === 'buttons'); $('stick').hidden = !(t && Settings.steer === 'stick'); },
   title(best, coins, paintId, owned) {
     $('bestScore').textContent = fmt(best);
     $('coins').textContent = fmt(coins);

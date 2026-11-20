@@ -39,11 +39,38 @@ function initInput(canvas) {
   wheel.addEventListener('pointermove', e => { if (Input.wheel && e.pointerId === Input.wheel.id) wheelAt(e); });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => wheel.addEventListener(ev, e => { if (Input.wheel && e.pointerId === Input.wheel.id) wheelOff(); }));
   wheel.addEventListener('contextmenu', e => e.preventDefault());
+  // ---- or a joystick: push the knob left or right (it moves freely, but only sideways steers) ----
+  const stick = $('stick'), knobS = $('stickKnob');
+  const stickOff = () => { Input.stick = null; stick.classList.remove('held'); knobS.style.transform = ''; };
+  const stickAt = e => {
+    const r = stick.getBoundingClientRect(), R = r.width / 2;
+    let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
+    const max = R * .55, l = Math.hypot(dx, dy);
+    if (l > max) { dx *= max / l; dy *= max / l; }
+    const d = dx / (max * .85);
+    Input.stick = { id: e.pointerId, s: Math.abs(d) < .1 ? 0 : clamp(d, -1, 1) };
+    knobS.style.transform = `translate(${dx}px, ${dy}px)`;
+  };
+  stick.addEventListener('pointerdown', e => { e.preventDefault(); stick.classList.add('held'); stickAt(e); try { stick.setPointerCapture(e.pointerId); } catch (err) {} });
+  stick.addEventListener('pointermove', e => { if (Input.stick && e.pointerId === Input.stick.id) stickAt(e); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => stick.addEventListener(ev, e => { if (Input.stick && e.pointerId === Input.stick.id) stickOff(); }));
+  stick.addEventListener('contextmenu', e => e.preventDefault());
+  addEventListener('blur', stickOff);
+  // ---- or two buttons, ◀ and ▶: hold one to turn (a tap nudges, holding turns harder) ----
+  Input.held = { L: new Set(), R: new Set() };
+  [['stL', 'L'], ['stR', 'R']].forEach(([id, k]) => {
+    const b = $(id), set = Input.held[k];
+    const off = e => { set.delete(e.pointerId); if (!set.size) b.classList.remove('held'); };
+    b.addEventListener('pointerdown', e => { e.preventDefault(); set.add(e.pointerId); b.classList.add('held'); try { b.setPointerCapture(e.pointerId); } catch (err) {} });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, off));
+    b.addEventListener('contextmenu', e => e.preventDefault());
+  });
+  addEventListener('blur', () => { Input.held.L.clear(); Input.held.R.clear(); });
   addEventListener('blur', wheelOff);
 
   canvas.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse') return;
-    if (Settings.steer === 'wheel') return;   // Wheel steering: the screen itself is hands-off
+    if (['stick', 'wheel', 'buttons'].includes(Settings.steer)) return;   // the screen itself is hands-off
     e.preventDefault();
     Input.pointers.set(e.pointerId, e.clientX);
     const t = now(), L = Input.lastTap;
@@ -107,8 +134,15 @@ function readInput(dt) {
   Input.kSteer = ks ? clamp(Input.kSteer + ks * dt * 5, -1, 1) : 0;
   if (ks && Math.sign(Input.kSteer) !== ks) Input.kSteer = ks * .2;
   let ts = 0;
-  if (Settings.steer === 'wheel') ts = Input.wheel ? Input.wheel.s : 0;
-  else if (T && T.cx != null) {
+  if (Settings.steer === 'stick') ts = Input.stick ? Input.stick.s : 0;
+  else if (Settings.steer === 'wheel') ts = Input.wheel ? Input.wheel.s : 0;
+  else if (Settings.steer === 'buttons') {
+    const side = (Input.held.R.size ? 1 : 0) - (Input.held.L.size ? 1 : 0);
+    if (!side) Input.tSteer = 0;
+    else if (Math.sign(Input.tSteer) !== side) Input.tSteer = side * STEER_START;
+    else Input.tSteer = clamp(Input.tSteer + side * dt * (1 - STEER_START) / STEER_RAMP, -1, 1);
+    ts = Input.tSteer;
+  } else if (T && T.cx != null) {
     if (Settings.steer === 'simple') {
       const side = simpleSide(T.cx);
       if (!side) Input.tSteer = 0;
@@ -117,7 +151,7 @@ function readInput(dt) {
       ts = Input.tSteer;
     } else { const sx = T.cx - T.ox; ts = Math.abs(sx) < 6 ? 0 : clamp(sx / STEER_PX, -1, 1); }
   }
-  if (!T) Input.tSteer = 0;
+  if (!T && Settings.steer !== 'buttons') Input.tSteer = 0;
   Input.steer = Input.kSteer || ts;
   const kb = !!(K.ShiftLeft || K.ShiftRight || K.Space);
   Input.boost = (T && T.mode === 'boost') || kb || Input.btnBoost || Input.btnTap;
