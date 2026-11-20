@@ -739,3 +739,25 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
   .timer { font-size: 16px; }
 }
 @media (orientation: landscape) and (max-height: 500px) { .pending { font-size: 18px; } }
+
+/* ---------- Boost back on the right; tips move to the left so the road ahead stays clear ---------- */
+@media (pointer: coarse) {
+  .boost-btn { left: auto; margin-left: 0; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  .boost-btn { margin-left: 0; bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+}
+.coach, .coach.on { left: max(14px, env(safe-area-inset-left, 0px)); right: auto; top: 40%; transform: none; max-width: min(42vw, 300px); width: auto;
+  font-size: 13px; padding: 8px 12px; border-radius: 10px; align-items: flex-start; text-align: left; }
+.coach { transform: translateX(-12px); }
+.coach.on { transform: none; }
+.coach.ram { font-size: 17px; }
+.coach .cr { width: 16px; height: 16px; border-width: 3px; margin-top: 1px; }
+.toast, .toast.on { left: max(14px, env(safe-area-inset-left, 0px)); right: auto; bottom: auto; top: 30%; transform: none; max-width: min(42vw, 300px);
+  white-space: normal; text-align: left; font-size: 12px; padding: 6px 11px; }
+.toast { transform: translateX(-12px); }
+.toast.on { transform: none; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .coach, .coach.on { top: 34%; max-width: min(30vw, 260px); font-size: 12px; } .coach.ram { font-size: 15px; }
+  .toast, .toast.on { top: 22%; bottom: auto; max-width: min(30vw, 260px); }
+}
