@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="description" content="Bump Up: an arcade driving game. Smash anything smaller, grow from a sedan to a bus.">
 <meta name="theme-color" content="#070a16">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bump Up">
 <title>Bump Up</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -80,9 +86,11 @@
       <button id="muteBtn" class="round-btn" aria-label="Sound on" title="Sound on"></button>
       <button id="timeBtn" class="round-btn" aria-label="Night: switch to day" title="Night"></button>
       <button id="settingsBtn" class="round-btn" aria-label="Settings" title="Settings"></button>
+      <button id="fsBtn" class="round-btn" aria-label="Full screen" title="Full screen" hidden></button>
     </div>
   </header>
   <div class="land-bottom">
+    <div id="iosHint" class="ios-hint" hidden><span>Play full screen: tap <b>Share</b>, then <b>Add to Home Screen</b></span><button id="iosHintClose" aria-label="Dismiss">✕</button></div>
     <p class="tagline">Smash anything smaller. Grow into something bigger.</p>
     <div class="map-row">
       <button id="mapBtn" class="map-btn" aria-label="Change map"><small>Map</small><b id="mapName">Seaside Strip</b><span class="mb-change">Change ›</span></button>
@@ -135,6 +143,7 @@
           <button data-steer="easy"><b>Drag</b><small>Drag to steer</small></button>
           <button data-steer="drift"><b>Drift</b><small>Drag, slides on hard turns</small></button>
         </div>
+        <button class="set-row" id="fsRow" hidden>Full screen <span><b>Off</b> ›</span></button>
         <button class="set-row" data-open="howto">How to play <span>›</span></button>
         <button class="set-row" id="tutorAgain">Play the tutorial again <span>›</span></button>
         <a class="set-row" href="https://forms.gle/NTCyNwrPWmiQ4TNs9" target="_blank" rel="noopener">Give feedback <span>›</span></a>
@@ -164,6 +173,7 @@
   <div class="panel small">
     <h2 class="big">Paused</h2>
     <button id="resumeBtn" class="btn primary">Resume</button>
+    <button id="fsPauseBtn" class="btn" hidden>Exit full screen</button>
     <button id="quitBtn" class="btn">Quit to title</button>
   </div>
 </section>
@@ -199,6 +209,7 @@
 <script src="js/actors.js"></script>
 <script src="js/player.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/fullscreen.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

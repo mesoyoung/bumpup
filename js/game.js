@@ -248,6 +248,7 @@ const Game = {
     dummy.x = Player.x; dummy.z = Player.z;
   }
   function toTitle() {
+    Full.onMenu();
     Game.state = 'title'; Ram.on = false; removeBoss();
     parkCar();
     UI.title(curBest(), save.coins, save.paint, save.owned);
@@ -850,8 +851,9 @@ const Game = {
   }
 
   // ---------- buttons ----------
-  $('playBtn').addEventListener('click', startRun);
-  $('againBtn').addEventListener('click', startRun);
+  $('playBtn').addEventListener('click', () => { Full.onDrive(); startRun(); });
+  $('againBtn').addEventListener('click', () => { Full.onDrive(); startRun(); });
+  Full.init();
   $('menuBtn').addEventListener('click', toTitle);
   $('resumeBtn').addEventListener('click', () => { Game.state = 'play'; UI.show(null); Sound.duck(false); });
   $('quitBtn').addEventListener('click', () => { Sound.siren(0); Sound.duck(false); toTitle(); });
