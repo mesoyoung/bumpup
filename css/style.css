@@ -633,3 +633,63 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
 .howto-list .kb { color: var(--dim); }
 @media (pointer: coarse) { .howto-list .kb { display: none; } }
 .set-row { box-sizing: border-box; }   /* the feedback link is an <a>, which would otherwise add its padding to 100% width */
+
+/* =================== Phone held sideways (wide and short screens) =================== */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* ---- landing: logo and stats on the left, menu down the right edge, the car in between ---- */
+  .landing { flex-direction: row; align-items: stretch; gap: 16px;
+    background: linear-gradient(90deg, rgba(7,10,22,.7) 0%, transparent 30%, transparent 58%, rgba(7,10,22,.85) 100%); }
+  .land-top { flex-direction: column; align-items: flex-start; justify-content: flex-start; padding-right: 0; gap: 10px; flex-wrap: nowrap; }
+  .landing .logo { font-size: 54px; }
+  .land-stats span { min-width: 54px; padding: 4px 9px; }
+  .land-stats b { font-size: 20px; }
+  .land-icons { position: static; display: flex; gap: 8px; order: 3; }
+  .land-icons .round-btn { width: 40px; height: 40px; }
+  .land-bottom { width: min(340px, 44vw); margin: 0; align-content: end; justify-items: stretch; gap: 8px; }
+  .landing .tagline { display: none; }
+  .map-row { display: grid; } .map-btn { justify-content: center; }
+  .land-nav { justify-content: stretch; } .land-nav .nav-btn { flex: 1; height: 36px; }
+  .mode-btn { padding: 6px 8px; } .mode-btn b { font-size: 20px; } .mode-btn small { font-size: 10px; }
+  .btn.drive { height: 52px; font-size: 30px; }
+
+  /* ---- in-game HUD: smaller pieces so the road stays visible ---- */
+  .hud-score .num { font-size: 40px; margin-top: 2px; }
+  .timer { font-size: 18px; }
+  .hud-map { flex-direction: row-reverse; align-items: flex-start; gap: 8px; }
+  #minimap { width: 100px; height: 100px; }
+  .hud-speed .num { font-size: 44px; }
+  .hud-vitals { top: calc(10px + env(safe-area-inset-top, 0px)); width: min(360px, 40vw); gap: 6px; }
+  .hud-vitals .lbl { display: none; }
+  .hud-up { width: min(260px, 30vw); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .boost-btn { width: 74px; height: 74px; margin-left: -37px; font-size: 17px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .banner #bannerBig { font-size: clamp(40px, 9vh + 24px, 72px); }
+  .coach { top: calc(96px + env(safe-area-inset-top, 0px)); }
+
+  /* ---- game over: two columns in one card (result and buttons left, missions right) ---- */
+  .over-panel { width: min(820px, 100%); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 18px; row-gap: 10px; padding: 16px; align-items: start; }
+  .over-panel > * { grid-column: 1; }
+  #overReason { grid-row: 1; } .over-top { grid-row: 2; } .over-panel .stats { grid-row: 3; } #overSet { grid-row: 4; } .over-panel .over-row { grid-row: 5; }
+  .over-panel > .sub { grid-column: 2; grid-row: 1; }
+  #overMissions { grid-column: 2; grid-row: 2 / span 3; }
+  .over-panel .feedback-cta { grid-column: 2; grid-row: 5; align-self: stretch; }
+  .over-panel .over-score { font-size: 56px; }
+  .over-panel .over-row .btn { height: 48px; }
+
+  /* ---- menus: centred panels that use most of the height ---- */
+  .sheet { max-height: 92vh; }
+  .sheet.is-shop { height: 92vh; }
+  .sheet-head { padding: 10px 18px 8px; }
+  .sheet-head h2 { font-size: 30px; }
+  .shop-tabs { padding-top: 6px; } .st-tab { font-size: 20px; padding: 7px 14px 9px; }
+  .sheet-body { padding: 12px 18px 16px; }
+  .paints { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  /* ---- map picker: wide cards, preview on the left ---- */
+  .mp-headbar h2 { font-size: 30px; }
+  .map-card { flex-basis: min(560px, 74vw); grid-template-columns: minmax(0, 200px) minmax(0, 1fr); }
+  .map-track::before, .map-track::after { flex-basis: calc(50% - min(280px, 37vw) - 18px); }
+  .mc-preview { max-height: none; height: 100%; aspect-ratio: auto; }
+  .mc-info { gap: 8px; padding: 12px 14px; }
+  .mc-info h3 { font-size: 30px; }
+  .mc-go { height: 44px; font-size: 22px; }
+}
