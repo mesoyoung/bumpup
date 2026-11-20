@@ -154,7 +154,7 @@ const UI = {
     this.bh.prev = cur;
     $('bossFill').style.transform = `scaleX(${cur})`; $('bossTrail').style.transform = `scaleX(${this.bh.trail})`;
     $('bossInfo').textContent = (B.hurt > 0 ? 'Reeling · ' : Ram.on ? 'RAM IT! · ' : B.mode === 'flee' ? 'Running away! · ' : B.mode === 'chase' ? 'Hunting you · ' : 'Boost into it · ') + Math.round(d) + ' m';
-    if (this.bossMode && this.bossMode !== B.mode && B.mode !== 'roam') this.toast(B.mode === 'flee' ? "The Iron Hauler is running away! Chase it down" : "The Iron Hauler is coming for you!");
+    if (this.bossMode && this.bossMode !== B.mode && B.mode !== 'roam') this.toast(B.mode === 'flee' ? 'Hauler fleeing! Chase it' : 'Hauler is coming!');
     this.bossMode = B.mode;
     // arrow: only when it's not on screen (or far)
     this.v.set(B.x, 2, B.z).project(camera);
@@ -233,7 +233,7 @@ const UI = {
   },
   toast(text) {
     const t = $('toast'); t.textContent = text; t.classList.add('on');
-    clearTimeout(this.tt); this.tt = setTimeout(() => t.classList.remove('on'), 1800);
+    clearTimeout(this.tt); this.tt = setTimeout(() => t.classList.remove('on'), 1300);
   },
   coach(html, cls, secs) {
     const el = $('coach'); el.innerHTML = html; el.className = 'coach ' + cls;

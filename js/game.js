@@ -519,7 +519,7 @@ const Game = {
   function coach() {
     const P = Player, touchUI = matchMedia('(pointer: coarse)').matches;
     if (Ram.on) {
-      if (!G.ramTold && coachSeen.ram < 6) { G.ramTold = true; coachSeen.ram++; store.set('coach', coachSeen); UI.coach('<span><b>Power Ram!</b> Boosting smashes amber</span>', 'ram', 3); }
+      if (!G.ramTold && coachSeen.ram < 6) { G.ramTold = true; coachSeen.ram++; store.set('coach', coachSeen); UI.coach('<span><b>Power Ram!</b></span>', 'ram', 1.6); }
       return;
     }
     G.ramTold = false;
@@ -540,13 +540,13 @@ const Game = {
     for (const c of G.police) if (c.alive) look(c.x, c.z, threatOf(c.size, P.level));
     for (const it of World.props) if (it.alive && Math.abs(it.x - P.x) < 34 && Math.abs(it.z - P.z) < 34) look(it.x, it.z, it.batch.threat === 'wreck' ? 'bounce' : it.batch.threat);
     if (best === 'bounce' && P.charge < .25) {
-      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Wreck cars</b> and take hard corners to charge Boost, then boost through it</span>`, 'amber', 5.5);
+      UI.coach(`<i class="cr amber"></i><span><b>Amber:</b> wreck cars to charge Boost</span>`, 'amber', 2.5);
       coachSeen.amber++; G.coachUntil = G.time + 10;
     } else if (best === 'bounce') {
-      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "tap the Boost button" : "hold Shift"}</span>`, 'amber', 5.5);
+      UI.coach(`<i class="cr amber"></i><span><b>Amber:</b> boost through it${touchUI ? '' : ' (Shift)'}</span>`, 'amber', 2.5);
       coachSeen.amber++; G.coachUntil = G.time + 10;
     } else if (best === 'wreck') {
-      UI.coach(`<i class="cr red"></i><span><b>Red</b> wrecks you. Steer round it</span>`, 'red', 5.5);
+      UI.coach(`<i class="cr red"></i><span><b>Red:</b> avoid it</span>`, 'red', 2.5);
       coachSeen.red++; G.redTips++; G.coachUntil = G.time + 9;
     }
     if (best) store.set('coach', coachSeen);
@@ -564,7 +564,7 @@ const Game = {
     emit(P.x + res.nx * -1, 1.2, P.z - res.nz, 14, [0xffd23a, 0xffffff, 0xff7b00], { speed: 8, up: 6, size: .18 });
     const need = TIERS.find(t => TIERS.indexOf(t) + 1 >= KINDS[kind].size);
     if (P.fuel <= 0) die(`Wrecked by a ${KINDS[kind].name.toLowerCase()}`);
-    else UI.toast(kind === 'hauler' ? 'Boost into it to smash through!' : `Too big! ${KINDS[kind].name}s need a ${need ? need.name : 'bigger ride'}`);
+    else UI.toast(kind === 'hauler' ? 'Boost into it!' : `Too big! Grow to a ${need ? need.name : 'bigger ride'}`);
   }
   function onWall(into) {
     const P = Player;
@@ -621,21 +621,21 @@ const Game = {
       addScore(pts, P.x, 3, P.z, `DRIFT ${v.toFixed(1)}s +${pts}`, 'drift');
 
     } else if (type === 'loopIn') {
-      if (!P.boosting) UI.coach(`<i class="cr amber"></i><span><b>Boost</b> to make it round the loop!</span>`, 'amber', 2.2);
+      if (!P.boosting) UI.coach(`<i class="cr amber"></i><span><b>Boost</b> round it!</span>`, 'amber', 1.5);
     } else if (type === 'loop') {
       const pts = LOOP_PTS * P.level;
       Sound.star(); Sound.combo(6); G.shake = Math.max(G.shake, .3); UI.flash('green');
       addScore(pts, P.x, 3, P.z, `LOOP! +${fmt(pts)}`, 'air');
       emit(P.x, 1, P.z, 30, [0xffd23a, 0xff7b00, 0xffffff], { speed: 10, up: 8, size: .2, life: .8 });
     } else if (type === 'loopfail') {
-      if (v === 'roll') { Sound.bonk(); UI.coach(`<i class="cr amber"></i><span>Not enough speed. <b>Boost</b> all the way round the loop</span>`, 'amber', 3); }
+      if (v === 'roll') { Sound.bonk(); UI.coach(`<i class="cr amber"></i><span>Too slow. <b>Boost!</b></span>`, 'amber', 1.8); }
       else {
         Sound.wreck(); G.shake = Math.max(G.shake, .6); G.hitPause = Math.max(G.hitPause, .08);
         emit(P.x, .5, P.z, 30, [0x9aa0b5, 0xcfd3e0, paintColor()], { speed: 8, up: 5, size: .35, life: .8, grav: 4 });
-        UI.coach(`<i class="cr red"></i><span><b>Fell off!</b> Keep boosting all the way over the top</span>`, 'red', 3);
+        UI.coach(`<i class="cr red"></i><span><b>Fell off!</b> Keep boosting</span>`, 'red', 1.8);
       }
     } else if (type === 'loopreset') {
-      UI.toast('Back to the loop entrance');
+      UI.toast('Back to the loop');
     } else if (type === 'launch') {
       Sound.nearMiss();
     } else if (type === 'land') {
@@ -682,7 +682,7 @@ const Game = {
       for (const c of P.circles()) if (circleOBB(c.x, c.z, c.r, f.x, f.z, f.rot, f.hl, f.hw)) {
         f.alive = false; f.mesh.visible = false; f.respawnAt = G.time + 25;
         P.fuel = Math.min(P.fuelMax, P.fuel + 60);
-        Sound.pickup(); UI.flash('green'); UI.toast('Food truck: tank topped up'); Missions.event('food');
+        Sound.pickup(); UI.flash('green'); UI.toast('Tank refilled'); Missions.event('food');
         emit(f.x, 2, f.z, 30, [0x3dff8f, 0xff4fa3, 0xffffff], { speed: 9, up: 10, size: .3 });
         break;
       }
@@ -693,7 +693,7 @@ const Game = {
   function updateHeat(dt) {
     if (G.time - G.lastSmash > 5) G.heat = Math.max(0, G.heat - HEAT_DECAY * dt * (1 + G.heat / 600));
     const stars = HEAT_STARS.filter(h => G.heat >= h).length;
-    if (stars > G.stars) { Sound.star(); UI.toast(stars === 1 ? 'Police are on to you' : 'More police incoming'); }
+    if (stars > G.stars) { Sound.star(); UI.toast(stars === 1 ? 'Police!' : 'More police!'); }
     G.stars = stars;
     const want = G.mode === 'rampage' && !G.bossAngry ? 0 : [0, 1, 1, 2][stars];   // a couple of chasers at most; in Rampage they wait for the boss fight
     G.police = G.police.filter(p => {
@@ -869,10 +869,10 @@ const Game = {
   $('settingsBtn').addEventListener('click', () => UI.openSheet('settings'));
   document.querySelectorAll('.set-row[data-open]').forEach(b => b.addEventListener('click', () => UI.openSheet(b.dataset.open)));
   document.querySelectorAll('[data-steer]').forEach(b => b.addEventListener('click', () => {
-    Settings.steer = b.dataset.steer; store.set('steer3', Settings.steer); UI.wheel();
+    Settings.steer = b.dataset.steer; store.set('steer4', Settings.steer); UI.wheel();
     Missions.swapDrift();
     UI.title(curBest(), save.coins, save.paint, save.owned);
-    UI.toast({ stick: 'Joystick: push it left or right to turn', wheel: 'Wheel: slide your left thumb across the wheel to turn', buttons: 'Buttons: hold ◀ or ▶ to turn', simple: 'Simple: hold left or right of the screen to turn', easy: 'Drag: drag from where you touch to turn', drift: 'Drift: drag to turn; hard turns at speed slide' }[Settings.steer]);
+    UI.toast({ stick: 'Joystick: push it left or right to turn', wheel: 'Wheel: slide your left thumb across the wheel to turn', buttons: 'Buttons: hold or slide across ◀ ▶', simple: 'Simple: hold left or right of the screen to turn', easy: 'Drag: drag from where you touch to turn', drift: 'Drift: drag to turn; hard turns at speed slide' }[Settings.steer]);
   }));
   $('muteBtn').addEventListener('click', () => { Sound.setMuted(!Sound.muted); UI.title(curBest(), save.coins, save.paint, save.owned); });
   $('paints').addEventListener('click', e => {

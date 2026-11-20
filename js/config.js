@@ -194,7 +194,7 @@ function weighted(list) {
 }
 // Player settings. steer: 'stick' (touch: a joystick under your left thumb; only left/right counts), 'wheel' (touch: a steering wheel under your left thumb) or 'buttons' (hold ◀ / ▶). Older styles: 'simple' (touch: hold left or right of centre to turn; no slides),
 //   'easy' (shown as Drag: drag from where you touch; no slides), 'drift' (drag; hard turns at speed slide)
-const Settings = { steer: 'stick', mode: 'rampage' };
+const Settings = { steer: 'buttons', mode: 'rampage' };
 
 // ---- Rampage mode: a short run with one goal. Eat, grow, don't starve. ----
 // ---- Growing up is an evolution: a white orb swells and pulses around you, then bursts ----
@@ -229,6 +229,6 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('bumpup.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('bumpup.' + k, JSON.stringify(v)); } catch (e) {} },
 };
-Settings.steer = store.get('steer3', 'stick');   // 'steer3': the joystick became the default, so older saved choices start fresh
-if (!['stick', 'wheel', 'buttons'].includes(Settings.steer)) Settings.steer = 'stick';   // touch steering: Joystick, Wheel or Buttons   // 'steer2': the wheel became the default, so older saved choices start fresh
+Settings.steer = store.get('steer4', 'buttons');   // 'steer4': the ◀ ▶ buttons became the default, so older saved choices start fresh
+if (!['stick', 'wheel', 'buttons'].includes(Settings.steer)) Settings.steer = 'buttons';   // touch steering: Joystick, Wheel or Buttons   // 'steer2': the wheel became the default, so older saved choices start fresh
 Settings.mode = 'rampage';   // Classic is switched off while we playtest Rampage

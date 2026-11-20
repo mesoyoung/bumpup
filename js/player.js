@@ -57,15 +57,22 @@ function initInput(canvas) {
   stick.addEventListener('contextmenu', e => e.preventDefault());
   addEventListener('blur', stickOff);
   // ---- or two buttons, ◀ and ▶: hold one to turn (a tap nudges, holding turns harder) ----
-  Input.held = { L: new Set(), R: new Set() };
-  [['stL', 'L'], ['stR', 'R']].forEach(([id, k]) => {
-    const b = $(id), set = Input.held[k];
-    const off = e => { set.delete(e.pointerId); if (!set.size) b.classList.remove('held'); };
-    b.addEventListener('pointerdown', e => { e.preventDefault(); set.add(e.pointerId); b.classList.add('held'); try { b.setPointerCapture(e.pointerId); } catch (err) {} });
-    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, off));
-    b.addEventListener('contextmenu', e => e.preventDefault());
+  // They share one touch area, so a thumb can slide from ◀ to ▶ and back without lifting.
+  // Each finger counts for the button it's over right now; with two down, the latest one wins.
+  const pad = $('steerBtns'), stL = $('stL'), stR = $('stR');
+  Input.pad = new Map();   // pointer id -> 'L' | 'R'
+  const padSide = e => { const r = pad.getBoundingClientRect(); return e.clientX < r.left + r.width / 2 ? 'L' : 'R'; };
+  const padShow = () => { const v = [...Input.pad.values()]; stL.classList.toggle('held', v.includes('L')); stR.classList.toggle('held', v.includes('R')); };
+  const padOff = e => { if (Input.pad.delete(e.pointerId)) padShow(); };
+  pad.addEventListener('pointerdown', e => { e.preventDefault(); Input.pad.set(e.pointerId, padSide(e)); padShow(); try { pad.setPointerCapture(e.pointerId); } catch (err) {} });
+  pad.addEventListener('pointermove', e => {
+    if (!Input.pad.has(e.pointerId)) return;
+    const s = padSide(e);
+    if (s !== Input.pad.get(e.pointerId)) { Input.pad.delete(e.pointerId); Input.pad.set(e.pointerId, s); padShow(); }   // re-insert so it counts as the latest
   });
-  addEventListener('blur', () => { Input.held.L.clear(); Input.held.R.clear(); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => pad.addEventListener(ev, padOff));
+  pad.addEventListener('contextmenu', e => e.preventDefault());
+  addEventListener('blur', () => { Input.pad.clear(); padShow(); });
   addEventListener('blur', wheelOff);
 
   canvas.addEventListener('pointerdown', e => {
@@ -137,7 +144,7 @@ function readInput(dt) {
   if (Settings.steer === 'stick') ts = Input.stick ? Input.stick.s : 0;
   else if (Settings.steer === 'wheel') ts = Input.wheel ? Input.wheel.s : 0;
   else if (Settings.steer === 'buttons') {
-    const side = (Input.held.R.size ? 1 : 0) - (Input.held.L.size ? 1 : 0);
+    const last = [...Input.pad.values()].pop(), side = last === 'R' ? 1 : last === 'L' ? -1 : 0;
     if (!side) Input.tSteer = 0;
     else if (Math.sign(Input.tSteer) !== side) Input.tSteer = side * STEER_START;
     else Input.tSteer = clamp(Input.tSteer + side * dt * (1 - STEER_START) / STEER_RAMP, -1, 1);
