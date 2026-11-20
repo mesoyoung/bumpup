@@ -139,7 +139,7 @@ const UI = {
   // ---------- the boss: bar under the Tank, plus an arrow when it's off-screen or far away ----------
   boss(G, P, camera) {
     const B = G.boss, bar = $('bossBar'), el = $('bossArrow');
-    if (!B || !B.alive) { bar.hidden = true; el.classList.remove('on'); return; }
+    if (!B || !B.alive) { bar.hidden = true; el.classList.remove('on'); return false; }
     bar.hidden = false;
     const d = Math.hypot(B.x - P.x, B.z - P.z), cur = B.hp / BOSS.hp;
     bar.classList.add('amber'); bar.classList.toggle('green', Ram.on);
@@ -154,7 +154,7 @@ const UI = {
     // arrow: only when it's not on screen (or far)
     this.v.set(B.x, 2, B.z).project(camera);
     const onScreen = this.v.z < 1 && Math.abs(this.v.x) < .9 && Math.abs(this.v.y) < .9;
-    if (onScreen && d < 90) { el.classList.remove('on'); return; }
+    if (onScreen && d < 90) { el.classList.remove('on'); return d < 75 && Math.abs(this.v.x) < .6; }   // 'seen' = close and near the middle
     const dx = B.x - P.x, dz = B.z - P.z, lx = dx * -P.fz + dz * P.fx, ly = dx * P.fx + dz * P.fz;
     const a = Math.atan2(lx, ly), W = innerWidth, H = innerHeight;
     const y0 = W < 641 ? 250 : 160, y1 = H - 220, cy = (y0 + y1) / 2, ry = (y1 - y0) / 2, rx = W / 2 - 82;   // keep the label on screen
@@ -162,6 +162,7 @@ const UI = {
     $('bossArrowIcon').style.transform = `rotate(${a}rad)`;
     $('bossArrowDist').textContent = Math.round(d) + ' m';
     el.classList.add('on');
+    return false;
   },
 
   // ---------- arrow to the nearest food truck when your tank is low ----------

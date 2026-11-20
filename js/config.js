@@ -89,7 +89,7 @@ const TRAFFIC_BANDS = [
 ];
 const TRAFFIC_BY_SIZE = { 1: ['mini'], 2: ['sedan'], 3: ['suv'], 4: ['truck'], 5: ['bus', 'bus', 'armor'], 6: ['tank'] };
 const TRAFFIC_SPEED = { mini: 13, sedan: 14, suv: 13, truck: 11, bus: 9, armor: 11, tank: 7 };
-const TRAFFIC_COUNT = 36;           // moving traffic: kept light so the roads read clearly (was 75)
+const TRAFFIC_COUNT = 22;           // moving traffic: kept light so the roads read clearly (was 75, then 36)
 // ---- Parking lots: the feeding grounds. Each map has a handful; they fill up as you come near ----
 const LOT_COUNT = 8;                // lots per map
 const LOT_FILL = [.5, .8];          // share of bays with a car in them

@@ -375,12 +375,27 @@ const Game = {
   }
 
   // ---------- the boss ----------
+  // It makes an entrance: it drives across the road just ahead of where you land, so you see it straight away.
   function spawnBoss() {
     removeBoss();
     const B = new Boss(scene), P = Player;
-    const spot = laneSpotRing(P, 140, 260) || randomLaneSpot(P.x, P.z, 140);
-    if (!spot) { B.remove(); return; }
-    B.place(spot); B.setThreat(P.level); G.boss = B;
+    if (World.map.arena) {
+      // open ground: cross your path about 90 m ahead, left to right
+      const sx = P.fz, sz = -P.fx;
+      B.x = P.x + P.fx * 95 - sx * 40; B.z = P.z + P.fz * 95 - sz * 40; B.h = Math.atan2(sx, sz); B.v = B.cruise; B.sync();
+    } else {
+      // the road you land on runs east along j = SPAWN.z / CELL: cross it at the third junction ahead
+      const j = Math.round(SPAWN.z / CELL), i = 3, d = { dx: 0, dz: 1 }, o = laneOff(d);
+      const spot = { x: i * CELL + o.x, z: (j - 1) * CELL + CELL - 24 + o.z, d, next: { i, j } };
+      B.place(spot);
+    }
+    B.setThreat(P.level); G.boss = B; G.bossSeen = false;
+  }
+  // the first time it's on screen: a beat of slow motion and a callout
+  function bossReveal() {
+    G.bossSeen = true; G.slow = Math.max(G.slow, .9);
+    UI.banner('THERE IT IS!', 'The Iron Hauler. Boost into it to smash right through!', 'tier grew');
+    Sound.star();
   }
   function hitBoss(B, res) {
     const P = Player;
@@ -827,7 +842,8 @@ const Game = {
         emit(Player.x - Player.fx * Player.half * .7, .3, Player.z - Player.fz * Player.half * .7, 1, [0x555a66, 0x777c88], { speed: 1, up: 1.5, size: .5, life: .7, grav: -1 });
       if (Player.boosting && Math.random() < .8)
         emit(Player.x - Player.fx * Player.half, .6, Player.z - Player.fz * Player.half, 1, [0x6ad5ff, 0xffffff, paintColor()], { speed: 1, up: .5, size: .2, life: .3, grav: 0 });
-      UI.hud(G, Player); UI.minimap(G, Player); UI.foodArrow(G, Player); UI.boss(G, Player, camera);
+      UI.hud(G, Player); UI.minimap(G, Player); UI.foodArrow(G, Player);
+      if (UI.boss(G, Player, camera) && playing && !G.bossSeen) bossReveal();
     } else { Sound.engine(0, 0, false, false); Sound.screech(0); $('speedlines').style.opacity = 0; $('foodArrow').classList.remove('on'); $('bossArrow').classList.remove('on'); }
     UI.updateFloats(dt);
     renderer.render(scene, camera);

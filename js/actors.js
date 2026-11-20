@@ -293,6 +293,12 @@ class Boss extends Police {
   constructor(scene) {
     super(scene, 'hauler', 'roam');
     this.golden = false; this.hp = BOSS.hp; this.hurt = 0; this.boss = true;
+    // a red beacon you can see over the rooftops, and a spinning marker above it
+    this.beam = new THREE.Mesh(GEO.cyl, new THREE.MeshBasicMaterial({ color: 0xff2e4d, transparent: true, opacity: .22, blending: THREE.AdditiveBlending, depthWrite: false }));
+    this.beam.scale.set(2.4, 80, 2.4); this.beam.position.y = 40;
+    this.icon = new THREE.Mesh(GEO.octa, new THREE.MeshBasicMaterial({ color: 0xff2e4d }));
+    this.icon.scale.set(1.3, 1.9, 1.3); this.icon.position.y = 9;
+    this.mesh.add(this.beam, this.icon);
     let c = this.cruise;
     Object.defineProperty(this, 'cruise', { get: () => c, set: v => { c = v * BOSS.speed; }, configurable: true });
     this.cruise = TRAFFIC_SPEED.truck || 11;
@@ -302,6 +308,7 @@ class Boss extends Police {
     if (this.mode === 'roam') Car.prototype.update.call(this, dt, cars, player);
     else super.update(dt, cars, player, now);
     this.mesh.visible = this.hurt <= 0 || Math.floor(this.hurt * 12) % 2 === 0;   // flickers while it recovers
+    this.icon.rotation.y += dt * 2.5; this.icon.position.y = 9 + Math.sin(now * 3) * .5;
   }
   setThreat() { this.ring.material = RING_MATS.bounce; this.ring.visible = true; }   // always amber: boost through it
 }
