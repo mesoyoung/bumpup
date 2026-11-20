@@ -535,3 +535,21 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
 @media (max-width: 640px) { .tagline { display: none; } }
 
 .flash.white { background: radial-gradient(rgba(255,255,255,.85), rgba(255,255,255,.35)); }
+
+/* ---------- HUD v2: the Tank sits up top where you look; the growth meter moves to the bottom-left ---------- */
+.hud-vitals { top: calc(14px + env(safe-area-inset-top, 0px)); bottom: auto; left: 50%; transform: translateX(-50%); width: min(380px, 44vw); }
+.hud-vitals .vital { gap: 5px; }
+.hud-vitals .lbl { font-size: 12px; font-weight: 700; letter-spacing: .16em; }
+.bar.fuel { height: 14px; border-radius: 7px; }
+.hud-up { top: auto; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); transform: none; width: min(300px, 34vw); }
+@media (max-width: 640px) {
+  .hud-vitals { top: calc(104px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); transform: none; width: calc(100% - 172px); }
+  .hud-up { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: calc(50% - 64px); }
+  .hud-up .tier-track { margin-bottom: 5px; }
+  .hud-up .up-row { min-height: 0; }
+}
+/* phones and tablets: Boost sits bottom-centre, between your thumbs, clear of the steering halves' edges */
+@media (pointer: coarse) {
+  .boost-btn { right: auto; left: 50%; margin-left: -42px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .hud-speed .tags { display: none; }   /* the Boost button lights up (and turns gold for Power Ram) instead */
+}
