@@ -204,7 +204,7 @@ const UI = {
     for (let i = this.floats.length - 1; i >= 0; i--) {
       const f = this.floats[i]; f.t += dt;
       if (f.t > FLOAT_LIFE) { f.el.remove(); this.floats.splice(i, 1); continue; }
-      const y0 = cy - f.slot * (W < 641 ? 40 : 48);
+      const y0 = cy - f.slot * (H < 500 ? 28 : W < 641 ? 40 : 48);   // tighter stacking on a phone held sideways
       let x = cx, y = y0, sc = 1, op = 1;
       if (f.t < .14) sc = .6 + f.t / .14 * .6;                 // pop in, overshooting a little
       else if (f.t < .26) sc = 1.2 - (f.t - .14) / .12 * .2;
