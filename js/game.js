@@ -860,13 +860,14 @@ const Game = {
     Settings.mode = b.dataset.mode; store.set('mode', Settings.mode);
     UI.title(curBest(), save.coins, save.paint, save.owned);
   }));
-  $('steerBtn').addEventListener('click', () => {
-    Settings.steer = { simple: 'easy', easy: 'drift', drift: 'simple' }[Settings.steer] || 'simple'; store.set('steer', Settings.steer);
-    UI.title(curBest(), save.coins, save.paint, save.owned);
+  $('settingsBtn').addEventListener('click', () => UI.openSheet('settings'));
+  document.querySelectorAll('.set-row[data-open]').forEach(b => b.addEventListener('click', () => UI.openSheet(b.dataset.open)));
+  document.querySelectorAll('[data-steer]').forEach(b => b.addEventListener('click', () => {
+    Settings.steer = b.dataset.steer; store.set('steer', Settings.steer);
     Missions.swapDrift();
     UI.title(curBest(), save.coins, save.paint, save.owned);
     UI.toast({ simple: 'Simple: hold left or right of the screen to turn', easy: 'Drag: drag from where you touch to turn', drift: 'Drift: drag to turn; hard turns at speed slide' }[Settings.steer]);
-  });
+  }));
   $('muteBtn').addEventListener('click', () => { Sound.setMuted(!Sound.muted); UI.title(curBest(), save.coins, save.paint, save.owned); });
   $('paints').addEventListener('click', e => {
     const b = e.target.closest('.paint'); if (!b) return;

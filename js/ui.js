@@ -9,6 +9,7 @@ const ICONS = {
   soundOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></g></svg>',
   missions: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5l1.5 1.5L8.5 5M4 12.5l1.5 1.5 3-3M4 18.5l1.5 1.5 3-3"/><path d="M12 7h8M12 13h8M12 19h8"/></g></svg>',
+  gear: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.4-2.5 1a7.7 7.7 0 0 0-1.7-1L15 3.5h-4l-.4 2.6a7.7 7.7 0 0 0-1.7 1l-2.5-1-2 3.4L6.5 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.4 2.5-1a7.7 7.7 0 0 0 1.7 1l.4 2.5h4l.4-2.6a7.7 7.7 0 0 0 1.7-1l2.5 1 2-3.4zM12 15.3A3.3 3.3 0 1 1 12 8.7a3.3 3.3 0 0 1 0 6.6z"/></svg>',
   moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="currentColor"/></svg>',
 };
 const FLOAT_HOLD = 1.4, FLOAT_LIFE = 2, FLOAT_STACK = 2;   // a "+50" holds at the centre, then flies to the score in .6 s
@@ -266,7 +267,8 @@ const UI = {
     mb.innerHTML = ICONS[off ? 'soundOff' : 'soundOn']; mb.classList.toggle('off', off);
     mb.setAttribute('aria-label', off ? 'Sound off: turn on' : 'Sound on: turn off'); mb.title = off ? 'Sound off' : 'Sound on';
     document.querySelectorAll('.mode-btn').forEach(b => { const on = b.dataset.mode === Settings.mode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
-    $('steerBtn').textContent = 'Steering: ' + ({ simple: 'Simple', easy: 'Drag', drift: 'Drift' }[Settings.steer] || 'Simple');
+    document.querySelectorAll('[data-steer]').forEach(b => { const on = b.dataset.steer === Settings.steer; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    $('settingsBtn').innerHTML = ICONS.gear;
   },
   missionCards(list) {
     const scopeTag = { run: 'One run', total: 'Total', best: 'Once' };
@@ -288,7 +290,7 @@ const UI = {
     $('shopTabs').hidden = !shop;
     document.querySelector('.sheet').classList.toggle('is-shop', shop);   // the Shop keeps one height whichever tab is open
     document.querySelectorAll('.st-tab').forEach(t => { const on = t.dataset.tab === name; t.classList.toggle('on', on); t.setAttribute('aria-selected', on); });
-    const titles = { missions: 'Missions', garage: 'Shop', paint: 'Shop', howto: 'How to play' };
+    const titles = { missions: 'Missions', garage: 'Shop', paint: 'Shop', howto: 'How to play', settings: 'Settings' };
     $('sheetTitle').textContent = titles[name];
     document.querySelectorAll('.tabpane').forEach(p => { p.hidden = p.dataset.pane !== name; });
     $('sheetWrap').hidden = false; this.sheet = name;

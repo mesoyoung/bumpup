@@ -79,6 +79,7 @@
     <div class="land-icons">
       <button id="muteBtn" class="round-btn" aria-label="Sound on" title="Sound on"></button>
       <button id="timeBtn" class="round-btn" aria-label="Night: switch to day" title="Night"></button>
+      <button id="settingsBtn" class="round-btn" aria-label="Settings" title="Settings"></button>
     </div>
   </header>
   <div class="land-bottom">
@@ -89,9 +90,6 @@
     <nav class="land-nav" aria-label="Menus">
       <button class="nav-btn" data-sheet="missions"><span class="nb-label">Missions</span><span id="missionBadge" class="nb-badge">0/3</span></button>
       <button class="nav-btn" data-sheet="shop"><span class="nb-label">Shop</span></button>
-      <button class="nav-btn" data-sheet="howto"><span class="nb-label">How to play</span></button>
-      <button id="steerBtn" class="nav-btn quiet">Steering: Simple</button>
-      <a class="nav-btn quiet" href="https://docs.google.com/forms/d/e/1FAIpQLSfWG7rj_qKf1EJ8JzqxfM2jHk3oJ6YjFZEB_8hO8e7AqtwDWw/viewform" target="_blank" rel="noopener">Feedback</a>
     </nav>
     <div class="mode-row" role="group" aria-label="Game mode">
       <button class="mode-btn" data-mode="rampage" aria-pressed="true"><b>Rampage</b><small>3 minutes · grow fast</small></button>
@@ -134,27 +132,32 @@
       <div class="tabpane" data-pane="paint" hidden>
         <div id="paints" class="paints"></div>
       </div>
+      <div class="tabpane" data-pane="settings" hidden>
+        <h3 class="set-h">Steering</h3>
+        <div class="seg" role="group" aria-label="Steering">
+          <button data-steer="simple"><b>Simple</b><small>Hold left / right</small></button>
+          <button data-steer="easy"><b>Drag</b><small>Drag to steer</small></button>
+          <button data-steer="drift"><b>Drift</b><small>Drag, slides on hard turns</small></button>
+        </div>
+        <button class="set-row" data-open="howto">How to play <span>›</span></button>
+        <button class="set-row" id="tutorAgain">Play the tutorial again <span>›</span></button>
+        <a class="set-row" href="https://docs.google.com/forms/d/e/1FAIpQLSfWG7rj_qKf1EJ8JzqxfM2jHk3oJ6YjFZEB_8hO8e7AqtwDWw/viewform" target="_blank" rel="noopener">Give feedback <span>›</span></a>
+      </div>
       <div class="tabpane howto" data-pane="howto" hidden>
-      <div class="rings">
-        <span><i class="ring smash"></i>Green ring: smash it</span>
-        <span><i class="ring bounce"></i>Amber: bounces you, drains your tank</span>
-        <span><i class="ring wreck"></i>Red: moving ones wreck you</span>
-      </div>
-      <div class="keys">
-        <span><kbd>←</kbd><kbd>→</kbd> steer</span>
-        <span><kbd>Shift</kbd> / <kbd>Space</kbd> boost</span>
-        <span><kbd>P</kbd> pause</span>
-      </div>
-      <div class="touch-note">
-        <span><b>Hold</b> left or right of the screen to steer (Simple), or <b>drag</b> (Drag and Drift steering)</span>
-        <span><b>Tap the Boost button</b> for a burst of boost, or hold it to keep going. The ring around it is your <b>boost charge</b></span>
-        <span><b>II button</b> to pause</span>
-      </div>
-      <p class="tricks"><b>Rampage</b> (3 minutes): take down the <b>Iron Hauler</b>, a bounty that roams the city. Boost into it at speed to smash right through it; the bigger you are, the more damage you do. After each hit it blinks for a moment and can't be hurt. Every smash is a bite, and enough bites make you grow; vehicles are worth 3. Keep eating or your tank runs dry. Parking lots (P on the minimap) are the best feeding grounds. <b>Classic</b>: endless, you grow by score.</p>
-      <p class="tricks"><b>Slides:</b> with Drift steering, turn hard at speed and the car slides (Simple and Drag steering never slide); the longer the slide, the bigger the boost when you straighten up. <b>Tank:</b> one bar for fuel and damage. It drains as you drive and when you bump things; smashing refills it, and so do food trucks. <b>Crazy Dash:</b> boost from a standstill. <b>Loop the loops:</b> boost all the way round for big points; without boost you roll back or fall off. <b>Boost</b> needs charge: wreck vehicles and slide or take hard corners to fill the ring around the Boost button. Boosting gives double points and a fuller refill; while boosting at speed you <b>Power Ram</b> through amber objects for a little tank. <b>Hunt your size:</b> things far smaller than you barely score. Orange ramps launch you for air points.</p>
-      <p class="credits">Engine and tyre recordings by freesound_community and olenchic (Pixabay).</p>
-      <button id="tutorAgain" class="btn small-btn">Play the tutorial again</button>
-      <p class="ladder">Sedan → SUV at 2,000 → Truck at 15,000 → Bus at 45,000</p>
+        <div class="rings">
+          <span><i class="ring smash"></i>Green: smash it</span>
+          <span><i class="ring bounce"></i>Amber: boost through it</span>
+          <span><i class="ring wreck"></i>Red: avoid</span>
+        </div>
+        <ul class="howto-list">
+          <li><b>Steer</b> Hold left or right <span class="kb">(← →)</span></li>
+          <li><b>Boost</b> Tap the Boost button <span class="kb">(Shift)</span></li>
+          <li><b>Charge boost</b> Wreck cars, take hard corners</li>
+          <li><b>Grow</b> Smash things. Parking lots (P) are full of food</li>
+          <li><b>Win</b> Boost into the Iron Hauler until it's scrap</li>
+          <li><b>Don't starve</b> Keep eating; food trucks top you up</li>
+        </ul>
+        <p class="credits">Engine and tyre recordings by freesound_community and olenchic (Pixabay).</p>
     </div>
     </div>
   </div>

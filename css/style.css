@@ -613,3 +613,22 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
 .boss-hp .hp-fill { background: linear-gradient(180deg, #ff8a9a, #ff2e4d 55%, #b0102a); box-shadow: none; }
 .boss-hp .hp-trail { background: #ffffff; }
 @media (max-width: 640px) { .boss-bar .boss-hp { min-width: 0; } }
+
+/* Settings sheet */
+.set-h { margin: 0; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.seg button { display: grid; gap: 3px; justify-items: center; padding: 10px 6px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--dim); cursor: pointer; text-align: center; }
+.seg button b { font-family: var(--display); font-size: 22px; font-style: italic; letter-spacing: .04em; text-transform: uppercase; line-height: 1; }
+.seg button small { font-size: 11px; line-height: 1.25; }
+.seg button.on { border-color: var(--sodium); background: rgba(255,179,71,.14); color: var(--ink); }
+.seg button.on b { color: var(--sodium); }
+.set-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 14px 14px; border-radius: 10px; border: 1px solid var(--line);
+  background: rgba(255,255,255,.04); color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer; text-align: left; }
+.set-row span { color: var(--dim); font-size: 20px; line-height: 1; }
+.set-row:hover { background: rgba(255,255,255,.08); }
+/* How to play: short list */
+.howto-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.howto-list li { display: grid; grid-template-columns: 108px 1fr; gap: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.04); font-size: 14px; }
+.howto-list b { color: var(--sodium); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+.howto-list .kb { color: var(--dim); }
+@media (pointer: coarse) { .howto-list .kb { display: none; } }
