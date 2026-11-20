@@ -159,6 +159,8 @@ const Game = {
     Missions.runStart();
     setThreatAll(1);
     camPos.copy(camera.position); camYaw = Player.h;   // glide from the landing view into the chase cam
+    // launch camera: start exactly where the landing screen's sweep is, and pan round to straight behind
+    G.introCam = { t: 0, off: Math.sin(titleA) * .9, bob: Math.sin(titleA * .7) * .4 };
     UI.clearFloats();
     UI.show(null);
     Game.state = 'play';
@@ -489,6 +491,7 @@ const Game = {
       let th = threatOf(KINDS[kind].size, P.level);
       if (th === 'wreck' && type === 'prop') th = 'bounce'; // street furniture never kills outright
       if (th === 'wreck' && G.tutor) th = 'bounce';          // nothing wrecks you during the tutorial
+      if (th === 'wreck' && G.time < (G.safeUntil || 0)) th = 'bounce';   // ...or just after you land from the launch
       if (th === 'bounce' && Ram.on && threatOf(KINDS[kind].size, P.level) === 'bounce') th = 'smash'; // Power Ram
       if (th === 'smash') smash(obj, type, kind, ox, oz);
       else if (th === 'bounce') bounce(obj, kind, res, mover);
@@ -629,6 +632,18 @@ const Game = {
       camera.lookAt(cx, 0, cz); return;
     }
     const P = Player, T = TIERS[P.tier];
+    if (G.introCam && Game.state === 'play') {
+      const c = G.introCam; c.t += dt;
+      const k = Math.min(1, c.t / 2.6), e = k * k * (3 - 2 * k);           // ease in and out
+      const a = P.h + Math.PI + c.off * (1 - e), r = 8.5 + (T.camD - 8.5) * e;
+      camera.position.set(P.x + Math.sin(a) * r, P.y + 3.1 + c.bob * (1 - e) + (T.camH - 3.1) * e, P.z + Math.cos(a) * r);
+      look.set(P.x + P.fx * (3 + 4 * e), P.y + .6 + (.5 + T.camH * .15) * e, P.z + P.fz * (3 + 4 * e));
+      camera.lookAt(look);
+      const base = innerWidth < innerHeight ? 74 : 60;
+      camera.fov += (base - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix();
+      if (k >= 1 && !P.intro && P.y <= .02) { G.introCam = null; camPos.copy(camera.position); camYaw = P.h; }   // hand over to the chase cam
+      return;
+    }
     camD += (T.camD - camD) * Math.min(1, dt * 1.5); camH += (T.camH - camH) * Math.min(1, dt * 1.5);
     const sp = Math.hypot(P.vx, P.vz);
     // the camera trails the car's heading, so it swings wide in a slide
@@ -692,7 +707,7 @@ const Game = {
         for (const k in World.batches) if (World.batches[k].threat === 'bounce') World.batches[k].ringMat.opacity = o;
       }
       collide();
-      if (G.afterLanding && !Player.intro && Player.y <= .02) { const f = G.afterLanding; G.afterLanding = null; f(); }
+      if (G.afterLanding && !Player.intro && Player.y <= .02) { const f = G.afterLanding; G.afterLanding = null; G.safeUntil = G.time + 2.5; f(); }   // a moment's grace after touchdown
       tutorUpdate(dt);
       if (!G.tutor) coach();
       if (playing && Player.alive && Player.fuel <= 0 && Player.speed < 1.5) die('Tank ran dry');
