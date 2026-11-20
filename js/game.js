@@ -660,8 +660,6 @@ const Game = {
     if (id !== save.map) loadMap(id);
     UI.closeMaps(); startRun();
   }));
-  $('overMissionsBtn').addEventListener('click', e => { e.stopPropagation(); UI.toggleOverMissions(); });
-  $('overScreen').addEventListener('click', e => { if (!e.target.closest('#overMissionsPop')) UI.toggleOverMissions(false); });
   $('tutorAgain').addEventListener('click', () => { store.set('tutorDone', false); UI.closeSheet(); UI.toast('The tutorial will play on your next drive'); });
   document.querySelectorAll('.nav-btn[data-sheet]').forEach(b => b.addEventListener('click', () => UI.openSheet(b.dataset.sheet)));
   $('sheetClose').addEventListener('click', () => UI.closeSheet());

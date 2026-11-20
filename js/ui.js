@@ -299,10 +299,5 @@ const UI = {
     os.innerHTML = (done.length ? done.map(m => `<div>Mission complete: ${m.text} <b>+${fmt(m.reward)}</b></div>`).join('') : '')
       + (setDone ? `<div class="lvl">Driver level ${setDone.level}! All three done <b>+${fmt(bonus)}</b>. New missions are ready.</div>` : '');
     $('overMissions').innerHTML = this.missionCards(Missions.state.active);
-    // missions live behind the icon at the top right; its badge shows progress and lights up if one was finished this run
-    const doneN = Missions.state.active.filter(m => m.done).length;
-    $('overMIcon').innerHTML = ICONS.missions; $('overMBadge').textContent = `${doneN}/3`;
-    $('overMissionsBtn').classList.toggle('new', done.length > 0 || !!setDone);
-    this.toggleOverMissions(false);
   },
 };
