@@ -79,17 +79,16 @@ function addScatter(b, kind, n, inset) {
   for (let k = 0; k < n; k++) b.scatter.push({ kind, x: rand(b.x0 + inset, b.x1 - inset), z: rand(b.z0 + inset, b.z1 - inset) });
 }
 // rows of parked cars across a car park block
-function addParking(b, kinds) {
-  // only a few cars per car park: each one is a full model, and lots of them would slow phones down
-  const rows = [b.z0 + 7, (b.z0 + b.z1) / 2, b.z1 - 7];
-  for (const z of rows) for (let x = b.x0 + 4; x < b.x1 - 3; x += 3.4) {
-    if (b.spots.length < 3 && Math.random() < .12) b.spots.push({ x, z, rot: Math.random() < .5 ? 0 : Math.PI, kind: pick(kinds) });
-  }
+// Parking bays: two rows. Which bays have cars (and what kind) is decided in the game when you get near.
+function addParking(b) {
+  b.bays = [];
+  for (const [z, rot] of [[b.z0 + 9, 0], [b.z1 - 9, Math.PI]]) for (let x = b.x0 + 4; x < b.x1 - 3; x += 3.4) b.bays.push({ x, z, rot });
 }
 
 function layoutDowntown(b, d) {
   const zone = d < SIZE * .2 ? 'downtown' : d < SIZE * .37 ? 'mid' : 'outer';
   if ((zone !== 'downtown' && Math.random() < .2) || (b.i === 3 && b.j === 4)) { b.type = 'park'; addTrees(b, 6, 4); return; }
+  if (zone !== 'downtown' && Math.random() < .14) { b.type = 'carpark'; addParking(b); return; }   // open lots between the towers
   b.type = 'build';
   const split = pick(zone === 'downtown' ? [1, 2, 4] : [2, 4, 4]);
   for (const [a, c, e, f] of splitRects(b, split)) {
@@ -102,7 +101,7 @@ function layoutSeaside(b, i, j) {
   if (j === N - 1) { b.type = 'beach'; addTrees(b, 4, 5); addScatter(b, 'cone', 3, 4); addScatter(b, 'bin', 2, 4); return; }
   const r = Math.random();
   if (r < .34) { b.type = 'plaza'; addScatter(b, 'bin', 4, 4); addScatter(b, 'hydrant', 2, 5); addTrees(b, 2, 6); }
-  else if (r < .56) { b.type = 'carpark'; addParking(b, ['sedan', 'sedan', 'sedan', 'suv']); }
+  else if (r < .56) { b.type = 'carpark'; addParking(b); }
   else if (r < .9) {
     // one low building standing on its own, with open space all round it
     b.type = 'island';
@@ -122,7 +121,7 @@ function layoutFlats(b, i, j) {
     const w = rand(7, 15), dd = rand(7, 15), cx = rand(b.x0 + w / 2, b.x1 - w / 2), cz = rand(b.z0 + dd / 2, b.z1 - dd / 2);
     b.boxes.push({ x0: cx - w / 2, z0: cz - dd / 2, x1: cx + w / 2, z1: cz + dd / 2, h: rand(4, 11), style: 'rock' });
   } else if (!nearStart && r < .42) {
-    b.type = 'camp'; addParking(b, ['sedan', 'suv', 'suv']); addScatter(b, 'bin', 3, 4);
+    b.type = 'camp'; addParking(b); addScatter(b, 'bin', 3, 4);
   }
   addScatter(b, 'bin', 2 + Math.floor(Math.random() * 3), 2);
   addScatter(b, 'cone', 2 + Math.floor(Math.random() * 3), 2);
@@ -147,7 +146,7 @@ function layoutDocks(b, i, j) {
     const x0 = left ? b.x0 + 2 : b.x1 - 2 - w, z0 = rand(b.z0 + 2, b.z1 - 2 - dd);
     b.boxes.push({ x0, z0, x1: x0 + w, z1: z0 + dd, h: rand(8, 12), style: 'warehouse' });
     addScatter(b, 'bin', 3, 3);
-  } else { b.type = 'carpark'; addParking(b, ['sedan', 'suv', 'suv']); }
+  } else { b.type = 'carpark'; addParking(b); }
 }
 
 // ---------- top-down preview for the map picker ----------

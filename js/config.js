@@ -88,7 +88,11 @@ const TRAFFIC_BANDS = [
 ];
 const TRAFFIC_BY_SIZE = { 1: ['mini'], 2: ['sedan'], 3: ['suv'], 4: ['truck'], 5: ['bus', 'bus', 'armor'], 6: ['tank'] };
 const TRAFFIC_SPEED = { mini: 13, sedan: 14, suv: 13, truck: 11, bus: 9, armor: 11, tank: 7 };
-const TRAFFIC_COUNT = 75;           // was 42
+const TRAFFIC_COUNT = 36;           // moving traffic: kept light so the roads read clearly (was 75)
+// ---- Parking lots: the feeding grounds. Each map has a handful; they fill up as you come near ----
+const LOT_COUNT = 8;                // lots per map
+const LOT_FILL = [.5, .8];          // share of bays with a car in them
+const LOT_NEAR = 160, LOT_FAR = 210; // a lot fills when you're within LOT_NEAR m, and empties (to refill later) past LOT_FAR
 const TRAFFIC_RADIUS = 170;         // traffic is kept within this distance of you (m)
 const PED_COUNT = 110;
 const PED_NOTICE = 16;        // how close you get before a pedestrian notices you (m)

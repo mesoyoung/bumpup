@@ -9,7 +9,7 @@ const World = {
   batches: {},       // kind -> PropBatch
   hash: new Map(),   // spatial hash of props
   loops: [],         // pedestrian loops (rects)
-  ramps: [], stunts: [], foodSpots: [], parkSpots: [],
+  ramps: [], stunts: [], lots: [], foodSpots: [], parkSpots: [],
 };
 
 // ---------- instanced prop batch ----------
@@ -112,7 +112,7 @@ function clearWorld(scene) {
   if (!World.root) return;
   scene.remove(World.root);
   for (const d of World.disposables) d.dispose();
-  Object.assign(World, { blocks: [], props: [], batches: {}, hash: new Map(), loops: [], ramps: [], stunts: [], foodSpots: [], parkSpots: [], root: null });
+  Object.assign(World, { blocks: [], props: [], batches: {}, hash: new Map(), loops: [], ramps: [], stunts: [], lots: [], foodSpots: [], parkSpots: [], root: null });
 }
 const keep = x => { World.disposables.push(x); return x; };
 
@@ -195,11 +195,12 @@ function buildMap(scene, map, layout) {
       g.position.set((b.x0 + b.x1) / 2, .03, (b.z0 + b.z1) / 2); scene.add(g);
     }
     if (b.type === 'carpark') { // painted bays
-      for (const z of [b.z0 + 7, (b.z0 + b.z1) / 2, b.z1 - 7]) for (let x = b.x0 + 2.3; x < b.x1 - 2; x += 3.4) {
+      for (const z of [b.z0 + 9, b.z1 - 9]) for (let x = b.x0 + 2.3; x < b.x1 - 2; x += 3.4) {
         m.makeScale(.14, 1, 4.6).setPosition(x, .05, z); dashes.setMatrixAt(dc++, m);
       }
     }
     for (const s of b.spots) World.parkSpots.push(s);
+    if (b.bays && b.bays.length) World.lots.push({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2, bays: b.bays, cars: [], active: false });
     for (const x of b.boxes) {
       const w = x.x1 - x.x0, dd = x.z1 - x.z0, h = x.h, cx = (x.x0 + x.x1) / 2, cz = (x.z0 + x.z1) / 2;
       if (x.style === 'container') {
@@ -283,6 +284,11 @@ function buildMap(scene, map, layout) {
   buildRamps(scene);
   buildStuntLoops(scene);
   buildSpawnPad(scene);
+  // keep just a handful of designated lots, spread out
+  World.lots.sort(() => Math.random() - .5);
+  const chosen = [];
+  for (const L of World.lots) if (chosen.length < LOT_COUNT && chosen.every(k => Math.hypot(k.x - L.x, k.z - L.z) > CELL * 1.5)) chosen.push(L);
+  World.lots = chosen;
 }
 
 // ---------- sidewalk props ----------

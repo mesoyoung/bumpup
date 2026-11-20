@@ -98,12 +98,33 @@ const Game = {
     G.food.forEach((f, i) => f.place(World.foodSpots[i]));
   }
   // Parked cars in car parks: smashable, they don't drive and aren't replaced once wrecked
-  function spawnParked() {
-    for (const s of World.parkSpots) {
-      const c = new Car(scene, s.kind); c.parked = true;
-      c.x = s.x; c.z = s.z; c.h = s.rot; c.v = 0; c.sync(); c.setThreat(Player.level || 1);
-      G.traffic.push(c);
+  // ---------- parking lots: fill up when you come near, empty (and later refill) when you leave ----------
+  function lotKind(level) {
+    let s = clamp(level + weighted([[0, 55], [-1, 25], [1, 20]]), 1, 6);   // mostly things you can eat, some one size up
+    while (!TRAFFIC_BY_SIZE[s] && s > 1) s--;
+    return pick(TRAFFIC_BY_SIZE[s]);
+  }
+  function fillLot(L) {
+    const fill = rand(LOT_FILL[0], LOT_FILL[1]), lv = Player.level || 1;
+    for (const s of L.bays) if (Math.random() < fill) {
+      const c = new Car(scene, lotKind(lv)); c.parked = true; c.lot = L;
+      c.x = s.x; c.z = s.z; c.h = s.rot; c.v = 0; c.sync(); c.setThreat(lv);
+      G.traffic.push(c); L.cars.push(c);
     }
+    L.active = true;
+  }
+  function emptyLot(L) { for (const c of L.cars) if (c.alive) { c.remove(); c.alive = false; } L.cars = []; L.active = false; }
+  let lotAt = 0;
+  function updateLots(who, force) {
+    const now = performance.now() / 1000; if (!force && now - lotAt < .5) return; lotAt = now;
+    for (const L of World.lots) {
+      const d = Math.hypot(L.x - who.x, L.z - who.z);
+      if (!L.active && d < LOT_NEAR) fillLot(L); else if (L.active && d > LOT_FAR) emptyLot(L);
+    }
+  }
+  function spawnParked() {
+    for (const L of World.lots) { L.active = false; L.cars = []; }   // their cars were cleared with the rest of the traffic
+    updateLots(Game.state === 'play' ? Player : dummy, true);
   }
   // ---------- maps ----------
   // Day or night: sky, fog, sun/moon and how much the windows and street lights glow. No rebuild needed.
@@ -596,7 +617,7 @@ const Game = {
     const stars = HEAT_STARS.filter(h => G.heat >= h).length;
     if (stars > G.stars) { Sound.star(); UI.toast(stars === 1 ? 'Police are on to you' : 'More police incoming'); }
     G.stars = stars;
-    const want = [0, 1, 2, 3][stars];
+    const want = [0, 1, 1, 2][stars];   // only a couple of chasers at most, so you can focus on getting away
     G.police = G.police.filter(p => {
       if (!p.alive) return false;
       const d = Math.hypot(p.x - Player.x, p.z - Player.z);
@@ -724,6 +745,7 @@ const Game = {
     }
     if (dying) { G.dyingT -= dt; if (G.dyingT <= 0) gameOver(); }
 
+    updateLots(who);
     G.traffic = G.traffic.filter(c => c.alive);
     for (const c of G.traffic) c.update(dt, G.traffic, who);
     for (const p of G.police) p.update(dt, G.traffic, who, t);
