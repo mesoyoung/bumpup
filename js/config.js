@@ -92,7 +92,6 @@ const GOLDEN_CHANCE = 0.04;   // golden targets are worth 5x
 // One Tank bar: it drains over time and when you bump things, refills when you smash. Empty = run over.
 const FUEL_DRAIN = 1.8;       // tank per second, for the sedan
 const FUEL_TIER = .2;         // each tier up burns this much more (bigger = thirstier)
-const BOOST_DRAIN = 3.5;      // extra per second while boosting
 const BOUNCE_DAMAGE = 22;     // tank lost hitting something one size up (or a wall at speed)
 const COMBO_WINDOW = 2.5;     // seconds between smashes to keep the combo
 const COMBO_MAX = 10;
@@ -100,7 +99,26 @@ const NEAR_MISS_PTS = 20;
 
 // ---- Boost rewards ----
 const BOOST_LINGER = 1;       // seconds boost keeps going after you let go
-const BOOST_TAP = 2.5;        // one tap of the Boost button boosts for this long
+const BOOST_TAP = 2.5;        // one tap of the Boost button boosts for this long (while charge lasts)
+// ---- Boost charge: boosting spends it, you earn it by wrecking vehicles and sliding / hard cornering ----
+const CHARGE_START = .4;      // share of a full charge you start each run with
+const CHARGE_USE = .25;       // spent per second of boost (a full charge = 4 s)
+const CHARGE_CAR = .12;       // per vehicle wrecked...
+const CHARGE_CAR_SIZE = .03;  // ...plus this per size step (bigger wrecks charge more)
+const CHARGE_DRIFT = .16;     // per second while sliding (Drift steering)
+const CHARGE_CORNER = .09;    // per second of hard cornering at speed (Simple / Drag steering)
+const DASH_CHARGE = .08;      // a Crazy Dash costs this much
+
+// ---- Loop the loops ----
+// Ride one by boosting all the way round. Without boost you roll back down, or fall off the top
+// and land flat (then you're put back at the entrance).
+const LOOP_COUNT = 4;         // per map (Salt Flats gets a couple more)
+const LOOP_R = 7.5;           // loop radius (m)
+const LOOP_W = 5;             // track width (m)
+const LOOP_SHIFT = 6;         // the track drifts this far sideways over one lap, so the exit clears the entrance
+const LOOP_THRUST = 34;       // push along the track while boosting (m/s²)
+const LOOP_DRAG = 10;         // slow-down along the track when not boosting (m/s²)
+const LOOP_PTS = 400;         // points for a full loop, times your size level
 const BOOST_SCORE = 2;        // points multiplier for smashes while boosting
 const BOOST_FUEL = 1.5;       // smashes refuel this much more while boosting
 const RAM_AT = 1;             // while boosting above this share of cruise speed you Power Ram...

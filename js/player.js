@@ -145,7 +145,7 @@ const Player = {
     this.x = START.x; this.z = START.z; this.h = Math.PI / 2;
     this.vx = 0; this.vz = 0; this.y = 0; this.vy = 0; this.yawRate = 0; this.speed = 0;
     this.fuelMax = Garage.fuelMax; this.fuel = this.fuelMax; this.invuln = 0; this.alive = true;
-    this.grow = 1; this.roll = 0; this.pitch = 0; this.boosting = false; this.boostHold = 0; this.drifting = false;
+    this.grow = 1; this.roll = 0; this.pitch = 0; this.boosting = false; this.boostHold = 0; this.drifting = false; this.charge = CHARGE_START; this.loop = null; this.loopCD = 0;
     this.driftT = 0; this.brakeT = 0; this.reversing = false; this.stuckT = 0; this.unstuckT = 0; this.hopCD = 0; this.dashT = 0; this.dashCD = 0; this.air = 0;
     this.prevBrake = false; this.prevBoost = false; this.lastFwd = 0;
     this.fx = 1; this.fz = 0; this.lateral = 0;
@@ -157,6 +157,52 @@ const Player = {
     this.build(this.scene, this.design);
     this.grow = 0; // play the growth animation
   },
+  // ---- riding a loop: speed along the track = boost push - gravity. Too slow on the way up and you
+  // roll back; too slow over the top and you fall off, land flat, and get put back at the entrance.
+  updateLoop(dt, onTrick) {
+    const L = this.loop, S = L.S, R = LOOP_R, g = GRAVITY, TAU = Math.PI * 2;
+    if (Input.boost) this.boostHold = Math.max(this.boostHold || 0, BOOST_LINGER);
+    else this.boostHold = Math.max(0, (this.boostHold || 0) - dt);
+    this.boosting = L.state === 'ride' && (Input.boost || this.boostHold > 0) && this.charge > 0 && this.fuel > 0;
+    if (this.boosting) { this.charge = Math.max(0, this.charge - CHARGE_USE * Garage.boostDrain * dt); if (this.charge <= 0) this.boostHold = 0; }
+    if (!this.noDrain) this.fuel = Math.max(0, this.fuel - FUEL_DRAIN * (1 + FUEL_TIER * this.tier) * dt);
+    this.drifting = false; this.yawRate = 0; this.lateral = 0; this.roll = 0;
+    const toWorld = (lx, lz) => [S.x + S.sx * lx + S.fx * lz, S.z + S.sz * lx + S.fz * lz];
+    if (L.state === 'ride') {
+      L.v += ((this.boosting ? LOOP_THRUST : -LOOP_DRAG) - g * Math.sin(L.th)) * dt;
+      L.th += L.v / R * dt;
+      if (L.th >= TAU) {                                        // made it round: carry on out of the exit lane
+        const [x, z] = toWorld(LOOP_SHIFT / 2, 0);
+        Object.assign(this, { x, z, y: 0, vy: 0, h: S.h, pitch: 0, vx: S.fx * L.v, vz: S.fz * L.v, fx: S.fx, fz: S.fz, loop: null, loopCD: 1 });
+        this.speed = L.v; onTrick('loop'); return;
+      }
+      if (L.th <= 0 && L.v <= 0) {                             // rolled back down: off you go, backwards
+        const [x, z] = toWorld(-LOOP_SHIFT / 2, 0);
+        Object.assign(this, { x, z, y: 0, vy: 0, h: S.h, pitch: 0, vx: S.fx * L.v, vz: S.fz * L.v, fx: S.fx, fz: S.fz, loop: null, loopCD: 3 });
+        onTrick('loopfail', 'roll'); return;
+      }
+      const c = Math.cos(L.th);
+      if (c < -.05 && L.v * L.v / R < -g * c) {                // not enough speed to stay on: off the track
+        const w = L.v / R, vl = LOOP_SHIFT / TAU * w, vy = L.v * Math.sin(L.th), vz = L.v * c;
+        L.state = 'fall'; L.vx = S.sx * vl + S.fx * vz; L.vz = S.sz * vl + S.fz * vz; L.vy = vy; L.spin = 2.5;
+      }
+      const p = stuntPoint(clamp(L.th, 0, TAU), R), [x, z] = toWorld(p.x, p.z);
+      Object.assign(this, { x, z, y: p.y, h: S.h, pitch: -L.th, fx: S.fx, fz: S.fz, vx: S.fx * Math.abs(L.v), vz: S.fz * Math.abs(L.v) });
+    } else if (L.state === 'fall') {
+      L.vy -= g * dt;
+      this.x += L.vx * dt; this.z += L.vz * dt; this.y += L.vy * dt; this.pitch -= L.spin * dt;
+      if (this.y <= 0) { this.y = 0; this.pitch = -Math.PI; L.state = 'flat'; L.t = 0; this.vx = 0; this.vz = 0; onTrick('loopfail', 'flat'); }
+    } else {                                                     // lying flat on its roof for a moment...
+      L.t += dt;
+      if (L.t > 1.1) {                                           // ...then back to the entrance, facing in
+        const [x, z] = toWorld(-LOOP_SHIFT / 2, -26);
+        Object.assign(this, { x, z, y: 0, vy: 0, h: S.h, pitch: 0, vx: 0, vz: 0, fx: S.fx, fz: S.fz, loop: null, loopCD: 3, invuln: 1.5, grow: 0 });
+        onTrick('loopreset');
+      }
+    }
+    this.speed = Math.hypot(this.vx, this.vz);
+  },
+  addCharge(a) { const was = this.charge; this.charge = Math.min(1, this.charge + a); if (was < 1 && this.charge >= 1 && this.onFull) this.onFull(); },
   scaleSpeed(f) { this.vx *= f; this.vz *= f; },
   hop(v) { if (this.y < .05) this.vy = Math.max(this.vy, v); },
   circles() {
@@ -167,6 +213,8 @@ const Player = {
 
   // onWall(impactSpeed), onTrick(type, value)
   update(dt, onWall, onTrick) {
+    this.loopCD = Math.max(0, (this.loopCD || 0) - dt);
+    if (this.loop) { this.updateLoop(dt, onTrick); this.prevBoost = Input.boost; this.sync(); return; }
     const T = TIERS[this.tier];
     const grounded = this.y <= .02;
     let fx = Math.sin(this.h), fz = Math.cos(this.h);
@@ -179,7 +227,8 @@ const Player = {
     this.dashCD = Math.max(0, this.dashCD - dt);
     const brakeReleased = this.prevBrake && !Input.brake;
     const boostPressed = Input.boost && !this.prevBoost;
-    if (!outOfFuel && grounded && this.dashCD <= 0 && vF < DASH_BELOW && (brakeReleased && this.brakeT > .12 || boostPressed)) {
+    if (!outOfFuel && grounded && this.dashCD <= 0 && vF < DASH_BELOW && this.charge >= DASH_CHARGE && (brakeReleased && this.brakeT > .12 || boostPressed)) {
+      this.charge -= DASH_CHARGE;
       vF = Math.max(vF, T.cruise * DASH_KICK); vL *= .3; this.dashT = .55; this.dashCD = .9;
       this.fuel = Math.max(0, this.fuel - 2); this.reversing = false;
       onTrick('dash');
@@ -209,7 +258,20 @@ const Player = {
     if (Input.boost) this.boostHold = Math.max(this.boostHold || 0, BOOST_LINGER);
     else this.boostHold = Math.max(0, (this.boostHold || 0) - dt);
     if (Input.brake || autoBack) this.boostHold = 0;
-    this.boosting = (Input.boost || this.boostHold > 0) && !outOfFuel && !Input.brake && !autoBack;
+    // no charge, no boost
+    const wantBoost = (Input.boost || this.boostHold > 0) && !outOfFuel && !Input.brake && !autoBack;
+    this.boosting = wantBoost && this.charge > 0;
+    if (wantBoost && !this.boosting && Input.boost && !this.prevBoost) this.denied = .4;   // tried to boost on empty
+    if (this.boosting) {
+      this.charge = Math.max(0, this.charge - CHARGE_USE * Garage.boostDrain * dt);
+      if (this.charge <= 0) { this.boostHold = 0; }
+    }
+    this.denied = Math.max(0, (this.denied || 0) - dt);
+    // charging: slides, or (Simple / Drag, which never slide) hard cornering at speed
+    if (grounded && !this.boosting) {
+      if (this.drifting) this.addCharge(CHARGE_DRIFT * dt);
+      else if (steerAmt > .7 && vF > 18) this.addCharge(CHARGE_CORNER * dt);
+    }
 
     // ---- throttle (auto) / brake / reverse / nitro ----
     if (grounded) {
@@ -259,6 +321,15 @@ const Player = {
     this.vx = fx * vF + fz * vL; this.vz = fz * vF - fx * vL;
     this.x += this.vx * dt; this.z += this.vz * dt;
     this.fx = fx; this.fz = fz; this.lateral = vL; this.speed = Math.hypot(this.vx, this.vz);
+    // ---- drive into a loop's entrance lane, facing the right way, and you're on it ----
+    if (grounded && vF > 6 && (this.loopCD <= 0 || this.boosting)) for (const S of World.stunts) {
+      const dx = this.x - S.x, dz = this.z - S.z, along = dx * S.fx + dz * S.fz, lat = dx * S.sx + dz * S.sz;
+      if (along < -1.5 || along > .6 || Math.abs(lat + LOOP_SHIFT / 2) > LOOP_W / 2) continue;
+      if (fx * S.fx + fz * S.fz < .8) continue;   // within ~35° of the loop's direction
+      this.loop = { S, th: 0, v: vF, state: 'ride', t: 0 }; this.drifting = false; this.driftT = 0;
+      onTrick('loopIn');
+      break;
+    }
 
     // ---- ramps and air ----
     if (grounded && vF > 8) for (const r of World.ramps) {
@@ -289,7 +360,7 @@ const Player = {
       }
     }
 
-    if (!this.noDrain) this.fuel = Math.max(0, this.fuel - (FUEL_DRAIN * (1 + FUEL_TIER * this.tier) + (this.boosting ? BOOST_DRAIN * Garage.boostDrain : 0)) * dt);
+    if (!this.noDrain) this.fuel = Math.max(0, this.fuel - FUEL_DRAIN * (1 + FUEL_TIER * this.tier) * dt);
     this.invuln = Math.max(0, this.invuln - dt);
     this.dashT = Math.max(0, this.dashT - dt);
 

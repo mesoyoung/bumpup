@@ -285,6 +285,8 @@ const Game = {
     G.counts[k.group] = (G.counts[k.group] || 0) + 1;
     if (k.size >= G.biggestSize) { G.biggestSize = k.size; G.biggest = k.name; }
     if (!tiny) P.fuel = Math.min(P.fuelMax, P.fuel + k.fuel * (obj.golden ? 3 : 1) * (P.boosting ? BOOST_FUEL : 1));
+    // wrecking a vehicle charges Boost (half as much if you're already boosting)
+    if (type === 'car') P.addCharge((CHARGE_CAR + k.size * CHARGE_CAR_SIZE) * (P.boosting ? .5 : 1));
     if (ram) { coachSeen.rammed++; store.set('coach', coachSeen); }
     if (ram) { P.fuel -= RAM_DAMAGE * Garage.damage; G.shake = Math.max(G.shake, .5); UI.flash('gold'); }
     G.heat += k.pts * (obj instanceof Police ? 3 : 1) * (tiny ? TINY_PTS : 1) / HEAT_TIER[P.tier]; G.lastSmash = G.time;
@@ -358,7 +360,10 @@ const Game = {
     for (const c of G.traffic) if (c.alive) look(c.x, c.z, threatOf(c.size, P.level));
     for (const c of G.police) if (c.alive) look(c.x, c.z, threatOf(c.size, P.level));
     for (const it of World.props) if (it.alive && Math.abs(it.x - P.x) < 34 && Math.abs(it.z - P.z) < 34) look(it.x, it.z, it.batch.threat === 'wreck' ? 'bounce' : it.batch.threat);
-    if (best === 'bounce') {
+    if (best === 'bounce' && P.charge < .25) {
+      UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Wreck cars</b> and take hard corners to charge Boost, then boost through it</span>`, 'amber', 5.5);
+      coachSeen.amber++; G.coachUntil = G.time + 10;
+    } else if (best === 'bounce') {
       UI.coach(`<i class="cr amber"></i><span><b>Amber</b> bounces you. <b>Boost</b> through it: ${touchUI ? "tap the Boost button" : "hold Shift"}</span>`, 'amber', 5.5);
       coachSeen.amber++; G.coachUntil = G.time + 10;
     } else if (best === 'wreck') {
@@ -435,6 +440,22 @@ const Game = {
       Sound.combo(4);
       addScore(pts, P.x, 3, P.z, `DRIFT ${v.toFixed(1)}s +${pts}`, 'drift');
 
+    } else if (type === 'loopIn') {
+      if (!P.boosting) UI.coach(`<i class="cr amber"></i><span><b>Boost</b> to make it round the loop!</span>`, 'amber', 2.2);
+    } else if (type === 'loop') {
+      const pts = LOOP_PTS * P.level;
+      Sound.star(); Sound.combo(6); G.shake = Math.max(G.shake, .3); UI.flash('green');
+      addScore(pts, P.x, 3, P.z, `LOOP! +${fmt(pts)}`, 'air');
+      emit(P.x, 1, P.z, 30, [0xffd23a, 0xff7b00, 0xffffff], { speed: 10, up: 8, size: .2, life: .8 });
+    } else if (type === 'loopfail') {
+      if (v === 'roll') { Sound.bonk(); UI.coach(`<i class="cr amber"></i><span>Not enough speed. <b>Boost</b> all the way round the loop</span>`, 'amber', 3); }
+      else {
+        Sound.wreck(); G.shake = Math.max(G.shake, .6); G.hitPause = Math.max(G.hitPause, .08);
+        emit(P.x, .5, P.z, 30, [0x9aa0b5, 0xcfd3e0, paintColor()], { speed: 8, up: 5, size: .35, life: .8, grav: 4 });
+        UI.coach(`<i class="cr red"></i><span><b>Fell off!</b> Keep boosting all the way over the top</span>`, 'red', 3);
+      }
+    } else if (type === 'loopreset') {
+      UI.toast('Back to the loop entrance');
     } else if (type === 'launch') {
       Sound.nearMiss();
     } else if (type === 'land') {
@@ -447,6 +468,7 @@ const Game = {
 
   function collide() {
     const P = Player;
+    if (P.loop) return;   // up on a loop: nothing to hit
     for (const it of hashQuery(P.x, P.z, P.half + 6)) {
       if (it.alive && testHit(it, 'prop', it.kind, it.x, it.z, it.rot, it.hl, it.hw)) if (!P.alive) return;
     }
@@ -455,7 +477,7 @@ const Game = {
       testHit(p, 'ped', 'ped', p.x, p.z, 0, PED_HIT, PED_HIT); if (!P.alive) return;
     }
     for (const c of [...G.traffic, ...G.police]) {   // sailing over a vehicle counts as a hop-over
-      if (!c.alive || P.y <= KINDS[c.kind].ht || G.time - (c.hopAt || -9) < 2) continue;
+      if (!c.alive || P.loop || P.y <= KINDS[c.kind].ht || G.time - (c.hopAt || -9) < 2) continue;
       if (Math.abs(c.x - P.x) > 12 || Math.abs(c.z - P.z) > 12) continue;
       if (P.circles().some(q => circleOBB(q.x, q.z, q.r, c.x, c.z, c.h, c.hl, c.hw))) {
         c.hopAt = G.time; addScore(30, c.x, 4, c.z, 'JUMPED IT +30', 'air');
@@ -531,7 +553,9 @@ const Game = {
     const over = clamp((sp - T.cruise) / (T.boost - T.cruise), 0, 1);       // 0 at cruise, 1 flat-out on boost
     const back = camD * (1 + over * .3);                                       // boost pulls the camera back
     const want = new THREE.Vector3(P.x - Math.sin(camYaw) * back, camH * (1 - over * .12) + P.y * .7, P.z - Math.cos(camYaw) * back);
-    camPos.lerp(want, Math.min(1, dt * 9));
+    // on a loop: pull up and back so you can watch the car go round (the track is see-through)
+    if (P.loop) { const S = P.loop.S, lat = -LOOP_SHIFT / 2 - 5; want.set(S.x + S.sx * lat - S.fx * 17, LOOP_R * 2 + 3, S.z + S.sz * lat - S.fz * 17); }
+    camPos.lerp(want, Math.min(1, dt * (P.loop ? 3 : 9)));
     const wall = pushOutOfBuildings(camPos.x, camPos.z, .6);                    // never end up inside a tower
     if (wall) { camPos.x = wall.x; camPos.z = wall.z; }
     camera.position.copy(camPos);
@@ -543,6 +567,7 @@ const Game = {
     camera.position.x += P.fx * G.kick; camera.position.z += P.fz * G.kick; camera.position.y -= G.kick * .25;   // lurch into a hit
     G.kick *= Math.exp(-dt * 11); G.fovKick *= Math.exp(-dt * 7);
     look.set(P.x + P.fx * 7, 1.1 + T.camH * .15 + P.y * .8, P.z + P.fz * 7);
+    if (P.loop) { const S = P.loop.S; look.set(S.x, LOOP_R * .9, S.z); }
     camera.lookAt(look);
     camera.rotateZ(clamp(P.yawRate * .035, -.1, .1));                         // lean into turns
     const base = innerWidth < innerHeight ? 74 : 60;

@@ -9,7 +9,7 @@ const World = {
   batches: {},       // kind -> PropBatch
   hash: new Map(),   // spatial hash of props
   loops: [],         // pedestrian loops (rects)
-  ramps: [], foodSpots: [], parkSpots: [],
+  ramps: [], stunts: [], foodSpots: [], parkSpots: [],
 };
 
 // ---------- instanced prop batch ----------
@@ -112,7 +112,7 @@ function clearWorld(scene) {
   if (!World.root) return;
   scene.remove(World.root);
   for (const d of World.disposables) d.dispose();
-  Object.assign(World, { blocks: [], props: [], batches: {}, hash: new Map(), loops: [], ramps: [], foodSpots: [], parkSpots: [], root: null });
+  Object.assign(World, { blocks: [], props: [], batches: {}, hash: new Map(), loops: [], ramps: [], stunts: [], foodSpots: [], parkSpots: [], root: null });
 }
 const keep = x => { World.disposables.push(x); return x; };
 
@@ -281,6 +281,7 @@ function buildMap(scene, map, layout) {
 
   buildProps(scene);
   buildRamps(scene);
+  buildStuntLoops(scene);
 }
 
 // ---------- sidewalk props ----------
@@ -428,6 +429,63 @@ function buildRamps(scene) {
     World.ramps.push({ x, z, rot, hl: L / 2, hw: 1.6 });
   }
 }
+
+// ---------- loop the loops: on road straights (or anywhere open on the Salt Flats) ----------
+// Local frame: +z = the way you drive in, +x = sideways, +y = up. You enter on the left lane at the
+// bottom, go up and over, and come out on the right lane still heading the same way.
+const LOOP_FADE = (() => {   // chevrons painted on the run-in
+  const c = document.createElement('canvas'); c.width = 64; c.height = 128;
+  const x = c.getContext('2d'); x.strokeStyle = '#ffd23a'; x.lineWidth = 12; x.lineCap = 'round';
+  for (const y of [100, 64, 28]) { x.beginPath(); x.moveTo(10, y + 18); x.lineTo(32, y); x.lineTo(54, y + 18); x.stroke(); }
+  return new THREE.CanvasTexture(c);
+})();
+function stuntPoint(th, r) {   // a point on the loop's centre line, at radius r from its axis
+  return new THREE.Vector3(-LOOP_SHIFT / 2 + LOOP_SHIFT * th / (Math.PI * 2), LOOP_R - r * Math.cos(th), r * Math.sin(th));
+}
+function buildStuntLoops(scene) {
+  const deck = new THREE.MeshLambertMaterial({ color: 0x3a4360, side: THREE.DoubleSide, transparent: true, opacity: .55, depthWrite: false }), rail = basic(0xff7b00), post = lam(0x3a4050), pad = basic(0xffffff, { map: LOOP_FADE, transparent: true, depthWrite: false });
+  // the track surface: one ribbon, built once and shared
+  const SEG = 96, pos = [], idx = [];
+  for (let i = 0; i <= SEG; i++) {
+    const th = i / SEG * Math.PI * 2, c = stuntPoint(th, LOOP_R + .12);
+    pos.push(c.x - LOOP_W / 2, c.y, c.z, c.x + LOOP_W / 2, c.y, c.z);
+    if (i < SEG) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  }
+  const ribbon = new THREE.BufferGeometry();
+  ribbon.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ribbon.setIndex(idx); ribbon.computeVertexNormals();
+  const railGeo = side => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(
+    Array.from({ length: SEG + 1 }, (_, i) => { const p = stuntPoint(i / SEG * Math.PI * 2, LOOP_R + .2); p.x += side * (LOOP_W / 2 + .1); return p; })), SEG, .22, 6, false);
+  const railL = railGeo(-1), railR = railGeo(1);
+  const used = new Set(), want = World.map.arena ? LOOP_COUNT + 2 : LOOP_COUNT;
+  for (let k = 0; k < 200 && World.stunts.length < want; k++) {
+    let x, z, h;
+    if (World.map.arena) {
+      x = rand(30, SIZE - 30); z = rand(30, SIZE - 30); h = rand(0, Math.PI * 2);
+      if (pushOutOfBuildings(x, z, 16)) continue;
+    } else {
+      const line = 1 + Math.floor(Math.random() * (N_LINES() - 2)), s = Math.floor(Math.random() * N), axis = pick(['x', 'z']);
+      const key = `${axis}${line}_${s}`; if (used.has(key)) continue; used.add(key);
+      x = axis === 'x' ? s * CELL + CELL / 2 : line * CELL; z = axis === 'x' ? line * CELL : s * CELL + CELL / 2;
+      h = axis === 'x' ? pick([Math.PI / 2, -Math.PI / 2]) : pick([0, Math.PI]);
+      if (pushOutOfBuildings(x, z, RW)) continue;
+    }
+    if (Math.hypot(x - START.x, z - START.z) < 70) continue;
+    if (World.ramps.some(r => Math.hypot(r.x - x, r.z - z) < 26)) continue;
+    if (World.stunts.some(l => Math.hypot(l.x - x, l.z - z) < 90)) continue;
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(ribbon, deck), new THREE.Mesh(railL, rail), new THREE.Mesh(railR, rail));
+    // two posts and a crossbar hold it up
+    const half = LOOP_SHIFT / 2 + LOOP_W / 2 + .5, top = LOOP_R * 2 + .6;
+    for (const sx of [-half, half]) { const p = new THREE.Mesh(GEO.box, post); p.scale.set(.5, top, .5); p.position.set(sx, top / 2, 0); g.add(p); }
+    const bar = new THREE.Mesh(GEO.box, post); bar.scale.set(half * 2 + .5, .5, .5); bar.position.set(0, top, 0); g.add(bar);
+    // chevrons on the run-in so you can see where to drive in
+    const p = new THREE.Mesh(GEO.plane, pad); p.rotation.y = Math.PI; p.scale.set(LOOP_W * .8, 1, 9); p.position.set(-LOOP_SHIFT / 2, .06, -5.5); g.add(p);
+    g.position.set(x, 0, z); g.rotation.y = h; scene.add(g);
+    const fx = Math.sin(h), fz = Math.cos(h);
+    World.stunts.push({ x, z, h, fx, fz, sx: fz, sz: -fx, mesh: g });
+  }
+}
+function N_LINES() { return N + 1; }
 
 // Show or hide street props for the player's tier. Locked props are invisible and can't be hit.
 function applyPropTier(tier) {

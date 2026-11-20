@@ -472,3 +472,43 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
 .over-mpop { position: absolute; top: 70px; right: 16px; left: 16px; z-index: 2; display: grid; gap: 10px; padding: 14px; border-radius: 14px;
   background: #0b0e1c; border: 1px solid var(--line); box-shadow: 0 16px 40px rgba(0,0,0,.5); isolation: isolate; }
 .over-mpop[hidden] { display: none; }
+
+/* Boost button v2: shown on every device; the ring is your boost charge */
+.boost-btn { display: grid; place-items: center; position: absolute; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  width: 84px; height: 84px; border-radius: 50%; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  background: radial-gradient(circle at 50% 40%, rgba(106,213,255,.35), rgba(10,14,30,.6)); border: 2px solid #6ad5ff; color: #e8f7ff;
+  font-family: var(--display); font-size: 19px; font-weight: 700; font-style: italic; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 0 16px rgba(106,213,255,.35);
+  transition: filter .2s, opacity .2s; }
+@media (pointer: fine) { .boost-btn { width: 70px; height: 70px; font-size: 16px; cursor: pointer; } }
+.boost-btn::before { content: ''; position: absolute; inset: -7px; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(#6ad5ff calc(var(--left, 0) * 360deg), rgba(255,255,255,.1) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); }
+.boost-btn.empty { filter: grayscale(1) brightness(.6); box-shadow: none; }
+.boost-btn.full { animation: boostReady 1s ease-in-out infinite alternate; }
+@keyframes boostReady { to { box-shadow: 0 0 30px rgba(106,213,255,.9); } }
+.boost-btn.denied { animation: boostDenied .35s; }
+@keyframes boostDenied { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.boost-btn.ram::before { background: conic-gradient(var(--gold) calc(var(--left, 0) * 360deg), rgba(255,255,255,.1) 0); }
+@media (prefers-reduced-motion: reduce) { .boost-btn.full, .boost-btn.denied { animation: none; } }
+
+/* game-over v3: everything (score, stats, missions, feedback, buttons) fits one phone screen */
+.over-panel { gap: 12px; padding: 18px; }
+.over-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.over-panel .over-score { font-size: 72px; }
+.over-panel .over-best { padding-bottom: 4px; }
+.over-panel .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.over-panel .stats > div { grid-column: auto !important; padding: 8px 10px; }
+.over-panel .stats .lbl { font-size: 10px; }
+.over-panel .stats b { font-size: 16px; }
+.over-panel .sub { margin: 0; }
+.over-panel .missions { gap: 6px; }
+.over-panel .missions.compact .mission { padding: 8px 10px; gap: 4px; }
+.over-panel .m-text { font-size: 13px; }
+.over-panel .m-bar { height: 4px; }
+.over-panel .m-prog { font-size: 11px; }
+.over-panel .over-set { padding: 8px 10px; font-size: 13px; gap: 4px; }
+.over-panel .feedback-cta { padding: 9px 12px; font-size: 13px; }
+.over-panel .over-row { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 8px; }
+.over-panel .over-row .btn { height: 52px; padding-inline: 12px; }
+.over-panel .over-row .btn.primary { font-size: clamp(22px, 6.2vw, 28px); letter-spacing: .02em; }

@@ -51,7 +51,10 @@ const UI = {
     $('speed').textContent = Math.round(Math.hypot(P.vx, P.vz) * 3.6);
     $('boostTag').classList.toggle('on', P.boosting);
     $('boostBtn').classList.toggle('on', P.boosting);
-    $('boostBtn').style.setProperty('--left', clamp((P.boostHold || 0) / BOOST_TAP, 0, 1));   // countdown ring
+    // the ring around the Boost button is your boost charge
+    const bb = $('boostBtn'), ch = clamp(P.charge || 0, 0, 1);
+    bb.style.setProperty('--left', ch);
+    bb.classList.toggle('empty', ch < .02); bb.classList.toggle('full', ch >= 1); bb.classList.toggle('denied', (P.denied || 0) > 0);
     $('boostBtn').classList.toggle('ram', Ram.on);
     $('ramTag').classList.toggle('on', Ram.on);
     document.body.classList.toggle('ramming', Ram.on);
@@ -83,6 +86,9 @@ const UI = {
       if (off) { c.strokeStyle = 'rgba(61,255,143,' + (.4 + .4 * Math.abs(Math.sin(G.time * 4))) + ')'; c.lineWidth = 2; c.beginPath(); c.arc(mx, my, 7, 0, 7); c.stroke(); }
       c.fillStyle = '#3dff8f'; c.fillRect(mx - 4, my - 1.5, 8, 3); c.fillRect(mx - 1.5, my - 4, 3, 8);
     }
+    // loop the loops: an orange ring with a tick showing the way in
+    c.lineWidth = 2.5; c.strokeStyle = '#ff7b00';
+    for (const S of World.stunts) { const lx = X(S.x), ly = Y(S.z); c.beginPath(); c.arc(lx, ly, 5, 0, 7); c.stroke(); c.beginPath(); c.moveTo(lx - S.fx * 9, ly - S.fz * 9); c.lineTo(lx - S.fx * 5, ly - S.fz * 5); c.stroke(); }
     for (const car of G.traffic) if (car.alive) {
       c.fillStyle = car.golden ? '#ffd23a' : '#' + THREAT[threatOf(car.size, P.level)].toString(16).padStart(6, '0');
       c.fillRect(X(car.x) - 2, Y(car.z) - 2, 4, 4);

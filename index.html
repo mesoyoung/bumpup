@@ -136,10 +136,10 @@
       </div>
       <div class="touch-note">
         <span><b>Hold</b> left or right of the screen to steer (Simple), or <b>drag</b> (Drag and Drift steering)</span>
-        <span><b>Tap the Boost button</b> for a burst of boost, or hold it to keep going</span>
+        <span><b>Tap the Boost button</b> for a burst of boost, or hold it to keep going. The ring around it is your <b>boost charge</b></span>
         <span><b>II button</b> to pause</span>
       </div>
-      <p class="tricks"><b>Slides:</b> with Drift steering, turn hard at speed and the car slides (Simple and Drag steering never slide); the longer the slide, the bigger the boost when you straighten up. <b>Tank:</b> one bar for fuel and damage. It drains as you drive and when you bump things; smashing refills it, and so do food trucks. <b>Crazy Dash:</b> boost from a standstill. <b>Boost</b> for double points and a fuller refill; while boosting at speed you <b>Power Ram</b> through amber objects for a little tank. <b>Hunt your size:</b> things far smaller than you barely score. Orange ramps launch you for air points.</p>
+      <p class="tricks"><b>Slides:</b> with Drift steering, turn hard at speed and the car slides (Simple and Drag steering never slide); the longer the slide, the bigger the boost when you straighten up. <b>Tank:</b> one bar for fuel and damage. It drains as you drive and when you bump things; smashing refills it, and so do food trucks. <b>Crazy Dash:</b> boost from a standstill. <b>Loop the loops:</b> boost all the way round for big points; without boost you roll back or fall off. <b>Boost</b> needs charge: wreck vehicles and slide or take hard corners to fill the ring around the Boost button. Boosting gives double points and a fuller refill; while boosting at speed you <b>Power Ram</b> through amber objects for a little tank. <b>Hunt your size:</b> things far smaller than you barely score. Orange ramps launch you for air points.</p>
       <p class="credits">Engine and tyre recordings by freesound_community and olenchic (Pixabay).</p>
       <button id="tutorAgain" class="btn small-btn">Play the tutorial again</button>
       <p class="ladder">Sedan → SUV at 2,000 → Truck at 15,000 → Bus at 45,000</p>
@@ -161,20 +161,19 @@
 <section id="overScreen" class="screen" hidden>
   <div class="panel over-panel">
     <p id="overReason" class="reason">Wrecked</p>
-    <div id="overScore" class="over-score">0</div>
-    <p id="overBest" class="over-best">Best 0</p>
+    <div class="over-top"><div id="overScore" class="over-score">0</div><p id="overBest" class="over-best">Best 0</p></div>
     <div class="stats">
       <div><span class="lbl">Best combo</span><b id="stCombo">x1</b></div>
       <div><span class="lbl">Survived</span><b id="stTime">0:00</b></div>
-      <div><span class="lbl">Coins earned</span><b id="stCoins">+0</b></div>
+      <div><span class="lbl">Coins</span><b id="stCoins">+0</b></div>
     </div>
     <div id="overSet" class="over-set" hidden></div>
     <h2 class="sub">Missions</h2>
     <div id="overMissions" class="missions compact"></div>
     <a class="feedback-cta" href="https://docs.google.com/forms/d/e/1FAIpQLSfWG7rj_qKf1EJ8JzqxfM2jHk3oJ6YjFZEB_8hO8e7AqtwDWw/viewform" target="_blank" rel="noopener"><span>Playtesting? Tell me what you think</span><b>Give feedback ›</b></a>
-    <div class="row">
+    <div class="row over-row">
       <button id="againBtn" class="btn primary">Drive again</button>
-      <button id="menuBtn" class="btn">Garage &amp; missions</button>
+      <button id="menuBtn" class="btn">Menu</button>
     </div>
   </div>
 </section>
