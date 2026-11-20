@@ -229,4 +229,4 @@ const store = {
   set(k, v) { try { localStorage.setItem('bumpup.' + k, JSON.stringify(v)); } catch (e) {} },
 };
 Settings.steer = store.get('steer', 'simple');
-Settings.mode = store.get('mode', 'rampage');
+Settings.mode = 'rampage';   // Classic is switched off while we playtest Rampage

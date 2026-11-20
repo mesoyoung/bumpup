@@ -761,3 +761,9 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
   .coach, .coach.on { top: 34%; max-width: min(30vw, 260px); font-size: 12px; } .coach.ram { font-size: 15px; }
   .toast, .toast.on { top: 22%; bottom: auto; max-width: min(30vw, 260px); }
 }
+
+/* ---------- top-right: minimap with Pause in the corner beside it, police stars under the map ---------- */
+.hud-map, .hud-map { display: grid; grid-template-columns: auto auto; grid-template-areas: "map pause" "stars ."; align-items: start; justify-items: center; gap: 6px 8px; flex-direction: initial; }
+.hud-map #minimap { grid-area: map; }
+.hud-map #pauseBtn { grid-area: pause; }
+.hud-map .stars { grid-area: stars; }
