@@ -928,8 +928,11 @@ const Game = {
     if (document.hidden) { if (Game.state === 'play') Game.onPauseKey(); Sound.suspend(); }
     else Sound.wake();
   });
-  // Clicked into another window but the game is still visible: pause the run, keep the (ducked) music.
-  addEventListener('blur', () => { if (Game.state === 'play') Game.onPauseKey(); });
+  // Clicked into another window (or outside the game's frame): pause the run and stop all sound too.
+  addEventListener('blur', () => { if (Game.state === 'play') Game.onPauseKey(); Sound.suspend(); });
+  addEventListener('focus', () => { if (!document.hidden) Sound.wake(); });
+  // a tap or click back into the game also brings the sound back (some browsers skip the focus event)
+  addEventListener('pointerdown', () => { if (document.hasFocus() && !document.hidden) Sound.wake(); }, true);
 
   // attract mode: city traffic running behind the title screen
   Player.x = START.x; Player.z = START.z; Player.level = 1;
