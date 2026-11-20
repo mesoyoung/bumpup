@@ -6,7 +6,7 @@ An arcade smash-and-grow driving game that runs in the browser, on phone or desk
 
 ## How it plays
 
-- **Two modes.** **Rampage** (default): 3-minute runs where every smash is a bite; enough bites and you evolve into the next size in a burst that blows nearby traffic away. Keep eating or you starve. **Classic**: endless, you grow by score.
+- **Two modes.** **Rampage** (default): 3-minute runs with a bounty: take down the **Iron Hauler** boss (3 hits; Power Ram it as a Truck or smash it as a Bus) for 1–3 stars. Every smash is a bite; enough bites and you evolve into the next size in a burst that blows nearby traffic away. Keep eating or you starve. **Classic**: endless, you grow by score.
 - **Rings show what you can hit.** Green: smash it. Amber: it bounces you, unless you boost through it. Red: it wrecks you. Things too small to refuel you have no ring.
 - **One Tank bar** does the work of fuel and health. It drains as you drive and when you bump into things, and refills when you smash. Food trucks top it up.
 - **Boost** needs charge: wreck vehicles and slide or take hard corners to fill the ring around the Boost button. Boosting gives double points, and at speed turns on **Power Ram**, which smashes through amber objects.

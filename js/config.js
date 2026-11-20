@@ -74,6 +74,7 @@ const KINDS = {
   swat:    { size: 4, ht: 3.3, pts: 400, fuel: 16, hl: 4.2, hw: 1.3, name: 'SWAT van',   group: 'Police' },
   armor:   { size: 5, ht: 3.3, pts: 500, fuel: 22, hl: 4.0, hw: 1.35,name: 'Armoured van', group: 'Armoured vans' },
   riot:    { size: 5, ht: 3.8, pts: 650, fuel: 24, hl: 5.0, hw: 1.5, name: 'Riot truck', group: 'Police' },
+  hauler:  { size: 4, ht: 4.8, pts: 3000, fuel: 40, hl: 5.9, hw: 1.95,name: 'Iron Hauler', group: 'Bosses' },
   tank:    { size: 6, ht: 3.0, pts: 900, fuel: 30, hl: 3.8, hw: 1.9, name: 'Tank',       group: 'Tanks' },
   bus:     { size: 5, ht: 3.3, pts: 400, fuel: 20, hl: 5.5, hw: 1.5, name: 'Bus',        group: 'Buses' },
 };
@@ -200,6 +201,19 @@ const EVOLVE_BUILD = 1.6;     // seconds the orb swells and pulses (the world ru
 const EVOLVE_BLAST = .6;      // seconds the burst takes to spread
 const EVOLVE_RADIUS = 40;     // every vehicle within this many metres gets blown away (no points)...
 const EVOLVE_COIN = 5;        // ...but each one is worth this many coins
+
+// ---- The boss: every Rampage run has a bounty on the Iron Hauler ----
+// It's size 4, so it's red (wrecks you) as a Sedan or SUV, amber as a Truck (Power Ram it with boost for an
+// early kill), and green once you're a Bus. Three hits take it down; after the first it comes for you.
+const BOSS = {
+  hp: 3,
+  speed: .8,           // its speed relative to a police car's
+  hurt: 1.3,           // seconds after a hit before it can be hit again
+  pts: 3000,           // points for the kill...
+  timeBonus: 25,       // ...plus this many per second left on the clock
+  stars: [80, 140],    // finish within this many seconds for 3 stars / 2 stars
+  coins: 100,          // bonus coins per star
+};
 
 const RAMPAGE = {
   time: 180,               // seconds per run

@@ -144,7 +144,8 @@ class Car {
     if (this.golden) this.color = 0xffd23a;
     this.mesh = makeVehicleMesh(kind, this.color, this.golden);
     this.ring = new THREE.Mesh(GEO.ring, RING_MATS.smash);
-    this.ring.scale.set(this.hw + .9, kind === 'tank' ? 3.2 : 1, this.hl + .9);   // tanks: a much taller ring so it shows over the low hull this.ring.position.y = .06;
+    this.ring.scale.set(this.hw + .9, kind === 'tank' ? 3.2 : kind === 'hauler' ? 2.4 : 1, this.hl + .9);   // tanks (and the boss): a taller ring so it shows over the hull
+    this.ring.position.y = .06;
     this.mesh.add(this.ring);
     scene.add(this.mesh);
     this.alive = true; this.v = 0; this.cruise = (TRAFFIC_SPEED[kind] || 14) * rand(.85, 1.1);
@@ -284,6 +285,23 @@ class Police extends Car {
     if (hit) { this.x = hit.x; this.z = hit.z; this.v *= .9; }
     this.stuck = this.v < 4 ? this.stuck + dt : 0;
     this.sync();
+  }
+}
+
+// The boss: roams the roads like traffic until you hit it, then hunts you like a police car (a bit slower)
+class Boss extends Police {
+  constructor(scene) {
+    super(scene, 'hauler', 'roam');
+    this.golden = false; this.hp = BOSS.hp; this.hurt = 0; this.boss = true;
+    let c = this.cruise;
+    Object.defineProperty(this, 'cruise', { get: () => c, set: v => { c = v * BOSS.speed; }, configurable: true });
+    this.cruise = TRAFFIC_SPEED.truck || 11;
+  }
+  update(dt, cars, player, now) {
+    this.hurt = Math.max(0, this.hurt - dt);
+    if (this.mode === 'roam') Car.prototype.update.call(this, dt, cars, player);
+    else super.update(dt, cars, player, now);
+    this.mesh.visible = this.hurt <= 0 || Math.floor(this.hurt * 12) % 2 === 0;   // flickers while it recovers
   }
 }
 

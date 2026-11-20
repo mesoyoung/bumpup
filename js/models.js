@@ -210,6 +210,20 @@ function armorParts() {       // size 5: armoured cash van
     ...lights(.9, 1.2, 4.03, -3.41),
   ];
 }
+function haulerParts() {      // the boss: a huge black armoured hauler with a gold plough and red glow strips
+  const b = lam(0x1a1c22), red = lam(0xff2e4d, 0xff2e4d, .9), gold = lam(0xd4a017, 0x7a5a00, .6);
+  return [
+    P('box', b, [0, 2.7, -1.3], [3.6, 3.6, 8.6]),
+    P('box', b, [0, 2.3, 4.3], [3.4, 3.0, 2.6]),
+    P('box', lam(C.glass), [0, 3.0, 5.62], [2.8, .8, .05]),
+    P('box', gold, [0, 1.1, 6.1], [4.2, 1.6, .5], [.35, 0, 0]),
+    P('box', red, [1.82, 2.7, -1.3], [.05, .4, 8.2]), P('box', red, [-1.82, 2.7, -1.3], [.05, .4, 8.2]),
+    P('box', gold, [0, 4.55, -1.3], [3.2, .25, 7.8]),
+    P('box', red, [0, 4.75, 3.6], [2.6, .25, .25]),
+    ...wheels([[1.6, 4.3], [-1.6, 4.3], [1.6, -1.1], [-1.6, -1.1], [1.6, -4.2], [-1.6, -4.2]], 1.0, .85),
+    ...lights(1.3, 1.7, 5.63, -5.61),
+  ];
+}
 function tankParts() {        // size 6: the only thing a bus should fear
   const b = lam(0x4b5d3a);
   return [
@@ -221,7 +235,7 @@ function tankParts() {        // size 6: the only thing a bus should fear
     P('box', lam(0xff2236, 0xff2236, 1), [0, 2.8, -.6], [.3, .1, .3]),
   ];
 }
-const VEHICLE_PARTS = { mini: miniParts, sedan: sedanParts, suv: suvParts, pickup: pickupParts, truck: truckParts, bus: busParts, police: policeParts, psuv: policeSuvParts, swat: swatParts, riot: riotParts, armor: armorParts, tank: tankParts, food: foodTruckParts };
+const VEHICLE_PARTS = { mini: miniParts, sedan: sedanParts, suv: suvParts, pickup: pickupParts, truck: truckParts, bus: busParts, police: policeParts, psuv: policeSuvParts, swat: swatParts, riot: riotParts, armor: armorParts, tank: tankParts, food: foodTruckParts, hauler: haulerParts };
 
 // ---------- paint designs (see PAINTS in config.js) ----------
 // A fake city to reflect in chrome paint: bright sky above, dark road below, and a horizon of

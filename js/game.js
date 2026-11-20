@@ -163,15 +163,17 @@ const Game = {
   }
   Game.loadMap = loadMap;
 
+  function removeBoss() { if (G.boss) { G.boss.remove(); G.boss = null; } }
   function startRun() {
     Sound.init(); Sound.resume();
+    removeBoss();
     Player.reset(scene, paintDesign());
     Player.placeOnPad();                                  // every run starts on the launch deck
     Object.assign(G, {
       score: 0, combo: 0, comboTimer: 0, pending: 0, bestCombo: 0, biggest: null, biggestSize: 0,
       counts: {}, upgrades: [{ tier: 0, time: 0 }], time: 0, heat: 0, stars: 0, lastSmash: 0,
       shake: 0, kick: 0, fovKick: 0, hitPause: 0, slow: 0, deathReason: '', dyingT: 0, respawnQueue: [], lastBlock: 0,
-      mode: Settings.mode, bites: 0, timeLeft: RAMPAGE.time, bonusCoins: 0, evolve: null,
+      mode: Settings.mode, bites: 0, timeLeft: RAMPAGE.time, bonusCoins: 0, evolve: null, boss: null, bossAngry: false, won: null,
     });
     Player.hunger = G.mode === 'rampage' ? 0 : 1;   // Rampage: a few seconds' grace, then hungry
     Ram.on = false; G.tutor = null; Player.noDrain = false; $('tutor').hidden = true;
@@ -191,7 +193,7 @@ const Game = {
   }
   function runIntro() {
     const touchUI = matchMedia('(pointer: coarse)').matches;
-    if (G.mode === 'rampage') UI.banner('RAMPAGE', `Smash ${RAMPAGE.grow[0]} things to grow. Keep eating or you'll starve!`, 'tier');
+    if (G.mode === 'rampage') UI.banner('BOUNTY', `Take down the Iron Hauler: 3 hits. Eat and grow until you can!`, 'tier');
     else UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'tap Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
     G.coachUntil = G.time + (G.mode === 'rampage' ? 25 : 4);
   }
@@ -246,7 +248,7 @@ const Game = {
     dummy.x = Player.x; dummy.z = Player.z;
   }
   function toTitle() {
-    Game.state = 'title'; Ram.on = false;
+    Game.state = 'title'; Ram.on = false; removeBoss();
     parkCar();
     UI.title(curBest(), save.coins, save.paint, save.owned);
     UI.show('titleScreen');
@@ -260,6 +262,7 @@ const Game = {
     const key = G.mode === 'rampage' ? 'bestRampage' : 'best';
     const isBest = G.score > save[key];
     if (isBest) { save[key] = G.score; store.set(key, save[key]); }
+    $('overReason').classList.toggle('win', !!G.won);
     UI.over(G, Player, earned, save[key], isBest, Missions.completedThisRun, missionCoins, setDone);
     UI.show('overScreen');
     Sound.siren(0);
@@ -268,7 +271,7 @@ const Game = {
   function timeUp() {
     if (!Player.alive) return;
     Player.alive = false; Ram.on = false; Game.state = 'dying'; G.dyingT = 1.4; G.slow = 1.4;
-    G.deathReason = `Time's up! You became ${/^[AEIOU]/.test(TIERS[Player.tier].name) ? 'an' : 'a'} ${TIERS[Player.tier].name}`;
+    G.deathReason = G.boss && G.boss.alive ? "Time's up! The Iron Hauler got away" : `Time's up! You became ${/^[AEIOU]/.test(TIERS[Player.tier].name) ? 'an' : 'a'} ${TIERS[Player.tier].name}`;
     UI.banner('TIME!', `You became ${/^[AEIOU]/.test(TIERS[Player.tier].name) ? 'an' : 'a'} ${TIERS[Player.tier].name}`, 'tier go'); Sound.upgrade();
   }
   function die(reason) {
@@ -361,6 +364,7 @@ const Game = {
       return true;
     });
     setThreatAll(Player.level);
+    if (G.boss && G.boss.alive) G.boss.setThreat(Player.level);
     applyPropTier(t);
     const what = { 1: 'Sedans, lamp posts and bus stops are prey. Police send SUVs now.', 2: 'SUVs and trees go down. SWAT vans are coming for you.', 3: 'Trucks are prey. Buses and armoured vans match you, and the tanks are out.' }[t];
     if (G.mode === 'rampage') {
@@ -368,6 +372,62 @@ const Game = {
       const nxt = RAMPAGE.grow[t];
       UI.banner('YOU GREW!', `${TIERS[t].name}. ${eat}${nxt ? ` Smash ${nxt} more to grow again.` : ''}`, 'tier grew');
     } else UI.banner(TIERS[t].name + '!', what, 'tier');
+  }
+
+  // ---------- the boss ----------
+  function spawnBoss() {
+    removeBoss();
+    const B = new Boss(scene), P = Player;
+    const spot = laneSpotRing(P, 140, 260) || randomLaneSpot(P.x, P.z, 140);
+    if (!spot) { B.remove(); return; }
+    B.place(spot); B.setThreat(P.level); G.boss = B;
+  }
+  function hitBoss(B, res) {
+    const P = Player;
+    let th = threatOf(B.size, P.level);
+    if (th === 'wreck' && G.time < (G.safeUntil || 0)) th = 'bounce';
+    if (th === 'bounce' && Ram.on) th = 'hit';                 // Power Ram: an early kill as a Truck
+    if (th === 'smash') th = 'hit';
+    if (th === 'wreck') { die('Flattened by the Iron Hauler'); return; }
+    if (th === 'bounce' || B.hurt > 0) {                       // too big for you, or still reeling: bounce off
+      if (B.hurt > 0) { P.vx += res.nx * 8; P.vz += res.nz * 8; P.scaleSpeed(.6); Sound.bonk(); return; }
+      bounce(B, 'hauler', res, B); return;
+    }
+    // a real hit
+    B.hp--; B.hurt = BOSS.hurt;
+    const ux = -res.nx, uz = -res.nz;                          // shove it away from you
+    B.x += ux * 3; B.z += uz * 3; B.v = -6;
+    P.scaleSpeed(.55); P.vx += res.nx * 6; P.vz += res.nz * 6;
+    G.shake = Math.max(G.shake, 1.1); G.hitPause = Math.max(G.hitPause, .14); G.kick = 1.6; G.fovKick = 10;
+    UI.flash('gold'); Sound.wreck(); Sound.star();
+    shockwave(scene, B.x, B.z, 14, 0xffd23a);
+    emit(B.x, 2, B.z, 50, [0xffd23a, 0xff2e4d, 0x1a1c22, 0xffffff], { speed: 18, up: 12, size: .3, life: 1.1 });
+    if (B.hp <= 0) { bossDown(B); return; }
+    UI.float(B.x, 5, B.z, `BOSS HIT! ${B.hp} to go`, 'ram');
+    if (!G.bossAngry) {                                       // it's angry now: it comes for you, and the police join in
+      G.bossAngry = true; B.mode = 'chase';
+      G.heat = Math.max(G.heat, HEAT_STARS[1]);
+      UI.banner('IT\'S ANGRY!', 'The Iron Hauler is coming for you. Police are joining in.', 'tier');
+    }
+  }
+  function bossDown(B) {
+    const P = Player;
+    B.alive = false; B.mesh.remove(B.ring);
+    shedWheels(scene, B.mesh, B.x, B.z, B.h, P.vx * .5, P.vz * .5, 18);
+    launchDebris(scene, B.mesh, B.x, B.z, B.h, P.vx * .6, P.vz * .6, 20, 6, { spin: 1.2, flash: .15 });
+    for (const r of [10, 22, 36]) shockwave(scene, B.x, B.z, r, r > 20 ? 0xffffff : 0xffd23a);
+    emit(B.x, 2, B.z, 160, [0xffd23a, 0xff7b00, 0xff2e4d, 0xffffff, 0x1a1c22], { speed: 30, up: 22, size: .5, life: 1.8 });
+    G.slow = 2.2; G.shake = 1.6; UI.flash('white'); Sound.upgrade(); Sound.wreck();
+    const used = RAMPAGE.time - G.timeLeft, stars = used <= BOSS.stars[0] ? 3 : used <= BOSS.stars[1] ? 2 : 1;
+    const bonus = Math.round(G.timeLeft) * BOSS.timeBonus;
+    G.score += BOSS.pts + bonus; G.pending += BOSS.pts + bonus;
+    G.bonusCoins = (G.bonusCoins || 0) + stars * BOSS.coins;
+    G.won = { stars, bonus };
+    UI.banner('RAMPAGE COMPLETE!', `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}  ·  +${fmt(BOSS.pts)} + ${fmt(bonus)} time bonus`, 'tier grew');
+    // the run ends in a slow-motion victory
+    P.alive = false; Ram.on = false; Game.state = 'dying'; G.dyingT = 3.2;
+    G.deathReason = `Rampage complete! ${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} The Iron Hauler is scrap`;
+    G.police.forEach(p => p.remove()); G.police = []; Sound.siren(0);
   }
 
   function smash(obj, type, kind, x, z) {
@@ -576,6 +636,11 @@ const Game = {
   function collide() {
     const P = Player;
     if (P.loop || G.evolve) return;   // up on a loop, or mid-evolution: nothing can touch you
+    const B = G.boss;
+    if (B && B.alive && P.y <= KINDS.hauler.ht) for (const c of P.circles()) {
+      const res = circleOBB(c.x, c.z, c.r, B.x, B.z, B.h, B.hl, B.hw);
+      if (res) { hitBoss(B, res); if (!P.alive) return; break; }
+    }
     for (const it of hashQuery(P.x, P.z, P.half + 6)) {
       if (it.alive && testHit(it, 'prop', it.kind, it.x, it.z, it.rot, it.hl, it.hw)) if (!P.alive) return;
     }
@@ -617,7 +682,7 @@ const Game = {
     const stars = HEAT_STARS.filter(h => G.heat >= h).length;
     if (stars > G.stars) { Sound.star(); UI.toast(stars === 1 ? 'Police are on to you' : 'More police incoming'); }
     G.stars = stars;
-    const want = [0, 1, 1, 2][stars];   // only a couple of chasers at most, so you can focus on getting away
+    const want = G.mode === 'rampage' && !G.bossAngry ? 0 : [0, 1, 1, 2][stars];   // a couple of chasers at most; in Rampage they wait for the boss fight
     G.police = G.police.filter(p => {
       if (!p.alive) return false;
       const d = Math.hypot(p.x - Player.x, p.z - Player.z);
@@ -728,7 +793,10 @@ const Game = {
         for (const k in World.batches) if (World.batches[k].threat === 'bounce') World.batches[k].ringMat.opacity = o;
       }
       collide();
-      if (G.afterLanding && !Player.intro && Player.y <= .02) { const f = G.afterLanding; G.afterLanding = null; G.safeUntil = G.time + 2.5; f(); }   // a moment's grace after touchdown
+      if (G.afterLanding && !Player.intro && Player.y <= .02) {   // touchdown: a moment's grace, the intro, and (in Rampage) the bounty
+        const f = G.afterLanding; G.afterLanding = null; G.safeUntil = G.time + 2.5; f();
+        if (G.mode === 'rampage') spawnBoss();
+      }
       tutorUpdate(dt);
       if (!G.tutor) coach();
       if (playing && Player.alive && Player.fuel <= 0 && Player.speed < 1.5) die('Tank ran dry');
@@ -749,6 +817,7 @@ const Game = {
     G.traffic = G.traffic.filter(c => c.alive);
     for (const c of G.traffic) c.update(dt, G.traffic, who);
     for (const p of G.police) p.update(dt, G.traffic, who, t);
+    if (G.boss && G.boss.alive) G.boss.update(dt, G.traffic, who, t);
     for (const f of G.food) f.update(dt, t, who.x, who.z);
     updatePeds(dt, who, t);
     updateDebris(dt); updateShocks(dt);
@@ -765,8 +834,8 @@ const Game = {
         emit(Player.x - Player.fx * Player.half * .7, .3, Player.z - Player.fz * Player.half * .7, 1, [0x555a66, 0x777c88], { speed: 1, up: 1.5, size: .5, life: .7, grav: -1 });
       if (Player.boosting && Math.random() < .8)
         emit(Player.x - Player.fx * Player.half, .6, Player.z - Player.fz * Player.half, 1, [0x6ad5ff, 0xffffff, paintColor()], { speed: 1, up: .5, size: .2, life: .3, grav: 0 });
-      UI.hud(G, Player); UI.minimap(G, Player); UI.foodArrow(G, Player);
-    } else { Sound.engine(0, 0, false, false); Sound.screech(0); $('speedlines').style.opacity = 0; $('foodArrow').classList.remove('on'); }
+      UI.hud(G, Player); UI.minimap(G, Player); UI.foodArrow(G, Player); UI.boss(G, Player, camera);
+    } else { Sound.engine(0, 0, false, false); Sound.screech(0); $('speedlines').style.opacity = 0; $('foodArrow').classList.remove('on'); $('bossArrow').classList.remove('on'); }
     UI.updateFloats(dt);
     renderer.render(scene, camera);
   }

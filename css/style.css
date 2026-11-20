@@ -569,3 +569,22 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
 .sheet.is-shop { height: min(86vh, 600px); }   /* sized to the Upgrades tab; Paint scrolls inside it */
 @media (max-width: 640px) { .sheet.is-shop { height: min(82vh, 560px); } }
 .sheet.is-shop .sheet-body { flex: 1; min-height: 0; align-content: start; }
+
+/* ---------- the boss: bar under the Tank, an arrow when it's off-screen, and a win style ---------- */
+.boss-bar { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 10px; background: rgba(8,11,22,.66); border: 1px solid rgba(255,46,77,.55); font-size: 12px; font-weight: 700; }
+.boss-bar[hidden] { display: none; }
+.bb-name { color: #ff6f86; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.bb-pips { display: flex; gap: 4px; }
+.bb-pips i { width: 16px; height: 8px; border-radius: 2px; background: var(--wreck); box-shadow: 0 0 6px rgba(255,46,77,.6); }
+.bb-pips i.gone { background: rgba(255,255,255,.12); box-shadow: none; }
+.bb-info { margin-left: auto; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.boss-bar.amber { border-color: var(--bounce); } .boss-bar.amber .bb-info { color: var(--bounce); }
+.boss-bar.green { border-color: var(--smash); } .boss-bar.green .bb-info { color: var(--smash); }
+.boss-arrow .fa-icon { background: rgba(255,46,77,.18); border-color: var(--wreck); box-shadow: 0 0 14px rgba(255,46,77,.6); }
+.boss-arrow .fa-icon::before { border-bottom-color: var(--wreck); }
+.boss-arrow .fa-label { color: #ff6f86; }
+.reason.win { color: var(--smash); }
+@media (max-width: 640px) {
+  .boss-bar { flex-wrap: wrap; row-gap: 3px; }
+  .bb-info { margin-left: 0; width: 100%; }
+}

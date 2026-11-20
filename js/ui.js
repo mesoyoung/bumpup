@@ -90,6 +90,9 @@ const UI = {
       if (off) { c.strokeStyle = 'rgba(61,255,143,' + (.4 + .4 * Math.abs(Math.sin(G.time * 4))) + ')'; c.lineWidth = 2; c.beginPath(); c.arc(mx, my, 7, 0, 7); c.stroke(); }
       c.fillStyle = '#3dff8f'; c.fillRect(mx - 4, my - 1.5, 8, 3); c.fillRect(mx - 1.5, my - 4, 3, 8);
     }
+    // parking lots: a small P
+    c.font = 'bold 11px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (const L of World.lots) { const lx = X(L.x), ly = Y(L.z); c.fillStyle = 'rgba(42,107,255,.9)'; c.fillRect(lx - 6, ly - 6, 12, 12); c.fillStyle = '#fff'; c.fillText('P', lx, ly + .5); }
     // loop the loops: an orange ring with a tick showing the way in
     c.lineWidth = 2.5; c.strokeStyle = '#ff7b00';
     for (const S of World.stunts) { const lx = X(S.x), ly = Y(S.z); c.beginPath(); c.arc(lx, ly, 5, 0, 7); c.stroke(); c.beginPath(); c.moveTo(lx - S.fx * 9, ly - S.fz * 9); c.lineTo(lx - S.fx * 5, ly - S.fz * 5); c.stroke(); }
@@ -97,10 +100,38 @@ const UI = {
       c.fillStyle = car.golden ? '#ffd23a' : '#' + THREAT[threatOf(car.size, P.level)].toString(16).padStart(6, '0');
       c.fillRect(X(car.x) - 2, Y(car.z) - 2, 4, 4);
     }
+    if (G.boss && G.boss.alive) {   // the boss: a big pulsing skull-red marker, pinned to the rim if it's off the map
+      let bx = X(G.boss.x), by = Y(G.boss.z); const ox = bx - W / 2, oy = by - W / 2, d = Math.hypot(ox, oy), rim = W / 2 - 9;
+      if (d > rim) { bx = W / 2 + ox / d * rim; by = W / 2 + oy / d * rim; }
+      c.fillStyle = '#ff2e4d'; c.beginPath(); c.arc(bx, by, 6 + Math.abs(Math.sin(G.time * 5)) * 2, 0, 7); c.fill();
+      c.fillStyle = '#fff'; c.font = 'bold 9px sans-serif'; c.fillText('☠', bx, by + .5);
+    }
     for (const p of G.police) { c.fillStyle = Math.floor(G.time * 6) % 2 ? '#ff1a3c' : '#2a6bff'; c.beginPath(); c.arc(X(p.x), Y(p.z), 3.5, 0, 7); c.fill(); }
     c.translate(W / 2, W / 2); c.rotate(-P.h + Math.PI);
     c.fillStyle = '#fff'; c.beginPath(); c.moveTo(0, -7); c.lineTo(5, 6); c.lineTo(0, 3); c.lineTo(-5, 6); c.closePath(); c.fill();
     c.restore();
+  },
+
+  // ---------- the boss: bar under the Tank, plus an arrow when it's off-screen or far away ----------
+  boss(G, P, camera) {
+    const B = G.boss, bar = $('bossBar'), el = $('bossArrow');
+    if (!B || !B.alive) { bar.hidden = true; el.classList.remove('on'); return; }
+    bar.hidden = false;
+    const th = threatOf(B.size, P.level), d = Math.hypot(B.x - P.x, B.z - P.z);
+    bar.classList.toggle('amber', th === 'bounce'); bar.classList.toggle('green', th === 'smash');
+    $('bossPips').innerHTML = Array.from({ length: BOSS.hp }, (_, i) => `<i class="${i < B.hp ? '' : 'gone'}"></i>`).join('');
+    $('bossInfo').textContent = (th === 'smash' ? 'Smash it! · ' : th === 'bounce' ? 'Power Ram it · ' : 'Too big · ') + Math.round(d) + ' m';
+    // arrow: only when it's not on screen (or far)
+    this.v.set(B.x, 2, B.z).project(camera);
+    const onScreen = this.v.z < 1 && Math.abs(this.v.x) < .9 && Math.abs(this.v.y) < .9;
+    if (onScreen && d < 90) { el.classList.remove('on'); return; }
+    const dx = B.x - P.x, dz = B.z - P.z, lx = dx * -P.fz + dz * P.fx, ly = dx * P.fx + dz * P.fz;
+    const a = Math.atan2(lx, ly), W = innerWidth, H = innerHeight;
+    const y0 = W < 641 ? 250 : 160, y1 = H - 220, cy = (y0 + y1) / 2, ry = (y1 - y0) / 2, rx = W / 2 - 82;   // keep the label on screen
+    el.style.transform = `translate(${W / 2 + Math.sin(a) * rx}px, ${cy - Math.cos(a) * ry}px) translate(-50%, -50%)`;
+    $('bossArrowIcon').style.transform = `rotate(${a}rad)`;
+    $('bossArrowDist').textContent = Math.round(d) + ' m';
+    el.classList.add('on');
   },
 
   // ---------- arrow to the nearest food truck when your tank is low ----------
