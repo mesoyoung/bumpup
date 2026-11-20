@@ -632,3 +632,4 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
 .howto-list b { color: var(--sodium); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
 .howto-list .kb { color: var(--dim); }
 @media (pointer: coarse) { .howto-list .kb { display: none; } }
+.set-row { box-sizing: border-box; }   /* the feedback link is an <a>, which would otherwise add its padding to 100% width */
