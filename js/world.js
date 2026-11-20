@@ -339,7 +339,7 @@ function buildProps(scene) {
       const lampRot = axis === 'x' ? (side > 0 ? Math.PI : 0) : (side > 0 ? -Math.PI / 2 : Math.PI / 2);
       // Some sides keep a parking bay free in the middle for a food truck
       const bay = bays.has(`${line},${s},${side},${axis}`);
-      { const [x, z] = at(CELL * .75, RW + .8); put('lamp', x, z, lampRot, 0); }   // one lamp per side, the same at every size
+      if ((line + s + (side > 0 ? 1 : 0)) % 2 === 0) { const [x, z] = at(CELL * .75, RW + .8); put('lamp', x, z, lampRot, 0); }   // one lamp per segment, alternating sides
       if (bay) { const [x, z] = at(CELL * .5, RW + 1.3); World.foodSpots.push({ x, z, rot: axis === 'x' ? Math.PI / 2 : 0, zone: bays.get(`${line},${s},${side},${axis}`) }); continue; }
       if (stops < 50 && Math.random() < .14) { const [x, z] = at(CELL * .375, SW - 1.4); put('busstop', x, z, lampRot, 1); stops++; }
       else if (Math.random() < .75) { const [x, z] = at(CELL * rand(.35, .4), SW - .8); put('bin', x, z, 0); }
