@@ -312,12 +312,27 @@ class Boss extends Police {
     }
     if (this.mode === 'roam') Car.prototype.update.call(this, dt, cars, player);
     else if (this.mode === 'flee') {
-      // head for a point well away from you (re-picked every couple of seconds so it doesn't dither)
+      // Run somewhere far from you that still has room to keep running: try a dozen spots around it and
+      // score them by distance from you, minus a penalty for being near the city edge (corners are a trap).
+      // Re-picked every 1.5 s, or sooner if you're closing in, so it keeps weaving across open city.
       this.fleeT = (this.fleeT || 0) - dt;
-      if (this.fleeT <= 0 || !this.fleeTo) {
-        const dx = this.x - player.x, dz = this.z - player.z, d = Math.hypot(dx, dz) || 1;
-        this.fleeTo = { x: clamp(this.x + dx / d * 220, 0, SIZE), z: clamp(this.z + dz / d * 220, 0, SIZE), vx: 0, vz: 0, tier: player.tier };
-        this.fleeT = 2;
+      const pd = Math.hypot(this.x - player.x, this.z - player.z);
+      if (this.fleeT <= 0 || !this.fleeTo || (pd < 35 && this.fleeT < 1)) {
+        const m = 60;                                            // keep this far in from the edge
+        let best = null, bestS = -1e9;
+        for (let k = 0; k < 12; k++) {
+          const a = Math.random() * Math.PI * 2, r = rand(110, 200);
+          const x = clamp(this.x + Math.sin(a) * r, m, SIZE - m), z = clamp(this.z + Math.cos(a) * r, m, SIZE - m);
+          const edge = Math.min(x, z, SIZE - x, SIZE - z);       // room to keep going
+          const away = Math.hypot(x - player.x, z - player.z);
+          // don't run *through* the player to get there
+          const tx = x - this.x, tz = z - this.z, tl = Math.hypot(tx, tz) || 1;
+          const toward = ((player.x - this.x) * tx + (player.z - this.z) * tz) / (tl * (pd || 1));
+          const s = away + Math.min(edge, 140) * .9 - (toward > .5 && pd < 90 ? 300 : 0);
+          if (s > bestS) { bestS = s; best = { x, z }; }
+        }
+        this.fleeTo = { x: best.x, z: best.z, vx: 0, vz: 0, tier: player.tier };
+        this.fleeT = 1.5;
       }
       super.update(dt, cars, this.fleeTo, now);
     } else super.update(dt, cars, player, now);
