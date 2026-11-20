@@ -224,6 +224,7 @@ const UI = {
     const shop = name === 'shop';
     if (shop) name = this.shopTab || 'garage';
     $('shopTabs').hidden = !shop;
+    document.querySelector('.sheet').classList.toggle('is-shop', shop);   // the Shop keeps one height whichever tab is open
     document.querySelectorAll('.st-tab').forEach(t => { const on = t.dataset.tab === name; t.classList.toggle('on', on); t.setAttribute('aria-selected', on); });
     const titles = { missions: 'Missions', garage: 'Shop', paint: 'Shop', howto: 'How to play' };
     $('sheetTitle').textContent = titles[name];
