@@ -34,9 +34,11 @@ const Game = {
 
   const G = Game.G;
   const save = {
-    best: store.get('best', 0), coins: store.get('coins', 0),
+    best: store.get('best', 0), bestRampage: store.get('bestRampage', 0), coins: store.get('coins', 0),
     paint: store.get('paint', 'blue'), owned: store.get('owned', ['blue']), map: store.get('map', 'flats'), time: store.get('time', 'night'),
   };
+  const rampage = () => Settings.mode === 'rampage';
+  const curBest = () => rampage() ? save.bestRampage : save.best;
   const paintDesign = () => PAINTS.find(p => p.id === save.paint) || PAINTS[0];
   const paintColor = () => underglowOf(paintDesign());
   const emitters = [];
@@ -147,7 +149,9 @@ const Game = {
       score: 0, combo: 0, comboTimer: 0, pending: 0, bestCombo: 0, biggest: null, biggestSize: 0,
       counts: {}, upgrades: [{ tier: 0, time: 0 }], time: 0, heat: 0, stars: 0, lastSmash: 0,
       shake: 0, kick: 0, fovKick: 0, hitPause: 0, slow: 0, deathReason: '', dyingT: 0, respawnQueue: [], lastBlock: 0,
+      mode: Settings.mode, bites: 0, timeLeft: RAMPAGE.time,
     });
+    Player.hunger = G.mode === 'rampage' ? 0 : 1;   // Rampage: a few seconds' grace, then hungry
     Ram.on = false; G.tutor = null; Player.noDrain = false; $('tutor').hidden = true;
     resetWorld();
     Missions.runStart();
@@ -156,13 +160,14 @@ const Game = {
     UI.clearFloats();
     UI.show(null);
     Game.state = 'play';
-    G.coachUntil = 4; G.redTips = 0; G.coachScan = 0; G.ramTold = false; G.lastBoostAt = 0;
+    G.coachUntil = G.mode === 'rampage' ? 25 : 4; G.redTips = 0; G.coachScan = 0; G.ramTold = false; G.lastBoostAt = 0;
     if (!store.get('tutorDone', false)) tutorStart(); else runIntro();
   }
   function runIntro() {
     const touchUI = matchMedia('(pointer: coarse)').matches;
-    UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'tap Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
-    G.coachUntil = G.time + 4;
+    if (G.mode === 'rampage') UI.banner('RAMPAGE', `Smash ${RAMPAGE.grow[0]} things to grow. Keep eating or you'll starve!`, 'tier');
+    else UI.banner('Sedan', `Green: smash it. Amber: ${touchUI ? 'tap Boost' : 'hold Shift'} to boost through. Red: steer clear.`, 'tier');
+    G.coachUntil = G.time + (G.mode === 'rampage' ? 25 : 4);
   }
 
   // ---------- first-run tutorial: turn left, turn right, then off you go ----------
@@ -216,7 +221,7 @@ const Game = {
   function toTitle() {
     Game.state = 'title'; Ram.on = false;
     parkCar();
-    UI.title(save.best, save.coins, save.paint, save.owned);
+    UI.title(curBest(), save.coins, save.paint, save.owned);
     UI.show('titleScreen');
   }
   function gameOver() {
@@ -225,13 +230,22 @@ const Game = {
     save.coins += earned; store.set('coins', save.coins);
     const missionCoins = Missions.completedThisRun.reduce((s, m) => s + m.reward, 0);
     const setDone = Missions.settle();
-    const isBest = G.score > save.best;
-    if (isBest) { save.best = G.score; store.set('best', save.best); }
-    UI.over(G, Player, earned, save.best, isBest, Missions.completedThisRun, missionCoins, setDone);
+    const key = G.mode === 'rampage' ? 'bestRampage' : 'best';
+    const isBest = G.score > save[key];
+    if (isBest) { save[key] = G.score; store.set(key, save[key]); }
+    UI.over(G, Player, earned, save[key], isBest, Missions.completedThisRun, missionCoins, setDone);
     UI.show('overScreen');
     Sound.siren(0);
   }
+  // Rampage: the clock ran out. No crash, just a slow-motion finish.
+  function timeUp() {
+    if (!Player.alive) return;
+    Player.alive = false; Ram.on = false; Game.state = 'dying'; G.dyingT = 1.4; G.slow = 1.4;
+    G.deathReason = `Time's up! You became ${/^[AEIOU]/.test(TIERS[Player.tier].name) ? 'an' : 'a'} ${TIERS[Player.tier].name}`;
+    UI.banner('TIME!', `You became ${/^[AEIOU]/.test(TIERS[Player.tier].name) ? 'an' : 'a'} ${TIERS[Player.tier].name}`, 'tier go'); Sound.upgrade();
+  }
   function die(reason) {
+    if (G.mode === 'rampage' && reason === 'Tank ran dry') reason = `Starved as ${/^[AEIOU]/.test(TIERS[Player.tier].name) ? 'an' : 'a'} ${TIERS[Player.tier].name}`;
     if (!Player.alive) return;
     Player.alive = false; G.deathReason = reason; Ram.on = false;
     Game.state = 'dying'; G.dyingT = 1.6; G.slow = 1.6;
@@ -249,7 +263,7 @@ const Game = {
     Missions.event('score', { score: G.score });
     UI.float(x, y, z, label, cls);
     const next = TIERS[Player.tier + 1];
-    if (next && G.score >= next.at) upgrade();
+    if (next && G.mode !== 'rampage' && G.score >= next.at) upgrade();   // Rampage grows by bites instead
   }
   function upgrade() {
     const t = Player.tier + 1;
@@ -267,7 +281,15 @@ const Game = {
     Sound.upgrade(); UI.flash('gold');
     emit(Player.x, 1, Player.z, 40, [0xffd23a, paintColor(), 0xffffff], { speed: 16, up: 14, size: .22, life: 1.1 });
     const what = { 1: 'Sedans, lamp posts and bus stops are prey. Police send SUVs now.', 2: 'SUVs and trees go down. SWAT vans are coming for you.', 3: 'Trucks are prey. Buses and armoured vans match you, and the tanks are out.' }[t];
-    UI.banner(TIERS[t].name + '!', what, 'tier');
+    if (G.mode === 'rampage') {
+      // the big moment: slow-mo, a huge shockwave, and the world turns green around you
+      G.slow = Math.max(G.slow, 1.1); G.shake = Math.max(G.shake, .9); G.fovKick = 12; G.kick = 1.6;
+      shockwave(scene, Player.x, Player.z, 26, 0xffd23a); shockwave(scene, Player.x, Player.z, 16, 0xffffff);
+      emit(Player.x, 1, Player.z, 80, [0xffd23a, paintColor(), 0xffffff], { speed: 24, up: 18, size: .3, life: 1.4 });
+      const eat = { 1: 'Cars are food now!', 2: 'SUVs and trees are food now!', 3: 'Trucks are food now! Go wild.' }[t];
+      const nxt = RAMPAGE.grow[t];
+      UI.banner('YOU GREW!', `${TIERS[t].name}. ${eat}${nxt ? ` Smash ${nxt} more to grow again.` : ''}`, 'tier grew');
+    } else UI.banner(TIERS[t].name + '!', what, 'tier');
   }
 
   function smash(obj, type, kind, x, z) {
@@ -287,6 +309,11 @@ const Game = {
     if (!tiny) P.fuel = Math.min(P.fuelMax, P.fuel + k.fuel * (obj.golden ? 3 : 1) * (P.boosting ? BOOST_FUEL : 1));
     // wrecking a vehicle charges Boost (half as much if you're already boosting)
     if (type === 'car') P.addCharge((CHARGE_CAR + k.size * CHARGE_CAR_SIZE) * (P.boosting ? .5 : 1));
+    // Rampage: every real smash is a bite; enough bites and you grow
+    if (G.mode === 'rampage' && !tiny && P.alive) {
+      G.bites += (type === 'car' ? RAMPAGE.biteCar : 1) * (obj.golden ? 3 : 1);
+      if (TIERS[P.tier + 1] && G.bites >= RAMPAGE.grow[P.tier]) { G.bites = 0; G.growNext = true; }
+    }
     if (ram) { coachSeen.rammed++; store.set('coach', coachSeen); }
     if (ram) { P.fuel -= RAM_DAMAGE * Garage.damage; G.shake = Math.max(G.shake, .5); UI.flash('gold'); }
     G.heat += k.pts * (obj instanceof Police ? 3 : 1) * (tiny ? TINY_PTS : 1) / HEAT_TIER[P.tier]; G.lastSmash = G.time;
@@ -333,6 +360,7 @@ const Game = {
     const label = (ram ? 'POWER RAM ' : '') + `+${fmt(pts)}` + (gold > 1 ? ' GOLD' : '') + (!tiny && G.combo > 1 ? `  x${G.combo}` : '');
     addScore(pts, x, 2.5 + k.size * .6, z, label, tiny ? 'tiny' : gold > 1 ? 'gold' : ram ? 'ram' : boost > 1 ? 'boosted' : k.size === P.level ? 'big' : '');
     if (ram && P.fuel <= 0) die(`Rammed one ${KINDS[kind].name.toLowerCase()} too many`);
+    if (G.growNext) { G.growNext = false; upgrade(); }
   }
 
   // ---------- coaching: the first few times, point out amber (boost through it) and red (steer clear) ----------
@@ -609,6 +637,10 @@ const Game = {
       tutorUpdate(dt);
       if (!G.tutor) coach();
       if (playing && Player.alive && Player.fuel <= 0 && Player.speed < 1.5) die('Tank ran dry');
+      if (G.mode === 'rampage' && playing && Player.alive && !G.tutor) {
+        if (G.time > RAMPAGE.grace) Player.hunger = RAMPAGE.hunger;
+        G.timeLeft -= dt; if (G.timeLeft <= 0) { G.timeLeft = 0; timeUp(); }
+      }
       if (G.comboTimer > 0) { G.comboTimer -= dt; if (G.comboTimer <= 0) { G.combo = 0; G.pending = 0; } }
       updateHeat(dt);
       // respawn smashed props and cars away from the player
@@ -650,14 +682,18 @@ const Game = {
   $('resumeBtn').addEventListener('click', () => { Game.state = 'play'; UI.show(null); Sound.duck(false); });
   $('quitBtn').addEventListener('click', () => { Sound.siren(0); Sound.duck(false); toTitle(); });
   $('pauseBtn').addEventListener('click', () => Game.onPauseKey());
+  document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => {
+    Settings.mode = b.dataset.mode; store.set('mode', Settings.mode);
+    UI.title(curBest(), save.coins, save.paint, save.owned);
+  }));
   $('steerBtn').addEventListener('click', () => {
     Settings.steer = { simple: 'easy', easy: 'drift', drift: 'simple' }[Settings.steer] || 'simple'; store.set('steer', Settings.steer);
-    UI.title(save.best, save.coins, save.paint, save.owned);
+    UI.title(curBest(), save.coins, save.paint, save.owned);
     Missions.swapDrift();
-    UI.title(save.best, save.coins, save.paint, save.owned);
+    UI.title(curBest(), save.coins, save.paint, save.owned);
     UI.toast({ simple: 'Simple: hold left or right of the screen to turn', easy: 'Drag: drag from where you touch to turn', drift: 'Drift: drag to turn; hard turns at speed slide' }[Settings.steer]);
   });
-  $('muteBtn').addEventListener('click', () => { Sound.setMuted(!Sound.muted); UI.title(save.best, save.coins, save.paint, save.owned); });
+  $('muteBtn').addEventListener('click', () => { Sound.setMuted(!Sound.muted); UI.title(curBest(), save.coins, save.paint, save.owned); });
   $('paints').addEventListener('click', e => {
     const b = e.target.closest('.paint'); if (!b) return;
     const p = PAINTS.find(p => p.id === b.dataset.id);
@@ -667,7 +703,7 @@ const Game = {
     }
     save.paint = p.id; store.set('paint', p.id);
     if (Game.state === 'title') parkCar();
-    UI.title(save.best, save.coins, save.paint, save.owned);
+    UI.title(curBest(), save.coins, save.paint, save.owned);
   });
   Game.debugUpgrade = upgrade;
   // ---------- missions + garage ----------
@@ -698,7 +734,7 @@ const Game = {
     const b = e.target.closest('.buy'); if (!b || b.disabled) return;
     const cost = Garage.cost(b.dataset.up); if (cost == null || save.coins < cost) return;
     save.coins -= cost; store.set('coins', save.coins); Garage.buy(b.dataset.up); Sound.init(); Sound.upgrade();
-    UI.title(save.best, save.coins, save.paint, save.owned);
+    UI.title(curBest(), save.coins, save.paint, save.owned);
   });
   // Paused: effects go silent and the music drops quieter. Resuming brings both back.
   Game.onPauseKey = () => {

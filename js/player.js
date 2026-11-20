@@ -165,7 +165,7 @@ const Player = {
     else this.boostHold = Math.max(0, (this.boostHold || 0) - dt);
     this.boosting = L.state === 'ride' && (Input.boost || this.boostHold > 0) && this.charge > 0 && this.fuel > 0;
     if (this.boosting) { this.charge = Math.max(0, this.charge - CHARGE_USE * Garage.boostDrain * dt); if (this.charge <= 0) this.boostHold = 0; }
-    if (!this.noDrain) this.fuel = Math.max(0, this.fuel - FUEL_DRAIN * (1 + FUEL_TIER * this.tier) * dt);
+    if (!this.noDrain) this.fuel = Math.max(0, this.fuel - FUEL_DRAIN * (1 + FUEL_TIER * this.tier) * (this.hunger ?? 1) * dt);
     this.drifting = false; this.yawRate = 0; this.lateral = 0; this.roll = 0;
     const toWorld = (lx, lz) => [S.x + S.sx * lx + S.fx * lz, S.z + S.sz * lx + S.fz * lz];
     if (L.state === 'ride') {
@@ -360,7 +360,7 @@ const Player = {
       }
     }
 
-    if (!this.noDrain) this.fuel = Math.max(0, this.fuel - FUEL_DRAIN * (1 + FUEL_TIER * this.tier) * dt);
+    if (!this.noDrain) this.fuel = Math.max(0, this.fuel - FUEL_DRAIN * (1 + FUEL_TIER * this.tier) * (this.hunger ?? 1) * dt);
     this.invuln = Math.max(0, this.invuln - dt);
     this.dashT = Math.max(0, this.dashT - dt);
 

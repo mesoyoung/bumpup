@@ -512,3 +512,24 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
 .over-panel .over-row { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 8px; }
 .over-panel .over-row .btn { height: 52px; padding-inline: 12px; }
 .over-panel .over-row .btn.primary { font-size: clamp(22px, 6.2vw, 28px); letter-spacing: .02em; }
+
+/* Rampage: mode picker and the countdown */
+.mode-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.mode-btn { display: grid; gap: 2px; justify-items: center; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--glass); color: var(--dim); cursor: pointer;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.mode-btn b { font-family: var(--display); font-size: 24px; font-style: italic; letter-spacing: .04em; text-transform: uppercase; line-height: 1; }
+.mode-btn small { font-size: 11px; }
+.mode-btn.on { border-color: var(--sodium); color: var(--ink); background: rgba(255,179,71,.14); }
+.mode-btn.on b { color: var(--sodium); }
+.timer { display: block; margin-top: 2px; font-family: var(--display); font-size: 30px; font-weight: 600; font-style: italic; letter-spacing: .04em; color: var(--ink); text-shadow: 0 2px 0 rgba(0,0,0,.5); }
+.timer.low { color: var(--wreck); animation: timerPulse .5s ease-in-out infinite alternate; }
+@keyframes timerPulse { to { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .timer.low { animation: none; } }
+.banner.grew #bannerBig { font-size: clamp(56px, 16vw, 110px); color: var(--gold); }
+
+/* Rampage timer sits beside the "Score" label so it doesn't push the HUD down */
+.timer { display: inline-block; margin: 0 0 0 10px; padding: 1px 8px; border-radius: 8px; background: rgba(8,11,22,.6); border: 1px solid var(--line);
+  font-size: 22px; line-height: 1.1; vertical-align: middle; }
+.timer[hidden] { display: none; }
+.banner.grew #bannerBig { font-size: clamp(44px, 13vw, 96px); white-space: nowrap; }
+@media (max-width: 640px) { .tagline { display: none; } }

@@ -35,10 +35,13 @@ const UI = {
     $('comboX').textContent = 'x' + G.combo;
     $('comboBar').style.transform = `scaleX(${clamp(G.comboTimer / Garage.comboWindow, 0, 1)})`;
 
-    const cur = TIERS[P.tier], nxt = TIERS[P.tier + 1];
-    const frac = nxt ? clamp((G.score - cur.at) / (nxt.at - cur.at), 0, 1) : 1;
+    const cur = TIERS[P.tier], nxt = TIERS[P.tier + 1], rp = G.mode === 'rampage';
+    // Classic grows by score; Rampage grows by bites (smashes)
+    const frac = !nxt ? 1 : rp ? clamp(G.bites / RAMPAGE.grow[P.tier], 0, 1) : clamp((G.score - cur.at) / (nxt.at - cur.at), 0, 1);
     $('upFill').style.transform = `scaleX(${frac})`;
-    $('upLabel').textContent = nxt ? `${nxt.name} at ${fmt(nxt.at)}` : 'Max size';
+    $('upLabel').textContent = !nxt ? 'Max size' : rp ? `Smash ${Math.max(0, RAMPAGE.grow[P.tier] - G.bites)} more → ${nxt.name}` : `${nxt.name} at ${fmt(nxt.at)}`;
+    const tm = $('timer'); tm.hidden = !rp;
+    if (rp) { tm.textContent = mmss(Math.ceil(G.timeLeft)); tm.classList.toggle('low', G.timeLeft < 20); }
     document.querySelectorAll('.pip').forEach(p => {
       const i = +p.dataset.i; p.classList.toggle('done', i < P.tier); p.classList.toggle('cur', i === P.tier);
     });
@@ -199,6 +202,7 @@ const UI = {
     const mb = $('muteBtn'), off = Sound.muted;
     mb.innerHTML = ICONS[off ? 'soundOff' : 'soundOn']; mb.classList.toggle('off', off);
     mb.setAttribute('aria-label', off ? 'Sound off: turn on' : 'Sound on: turn off'); mb.title = off ? 'Sound off' : 'Sound on';
+    document.querySelectorAll('.mode-btn').forEach(b => { const on = b.dataset.mode === Settings.mode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
     $('steerBtn').textContent = 'Steering: ' + ({ simple: 'Simple', easy: 'Drag', drift: 'Drift' }[Settings.steer] || 'Simple');
   },
   missionCards(list) {

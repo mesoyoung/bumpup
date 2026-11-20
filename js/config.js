@@ -178,9 +178,19 @@ function weighted(list) {
 }
 // Player settings. steer: 'simple' (touch: hold left or right of centre to turn; no slides),
 //   'easy' (shown as Drag: drag from where you touch; no slides), 'drift' (drag; hard turns at speed slide)
-const Settings = { steer: 'simple' };
+const Settings = { steer: 'simple', mode: 'rampage' };
+
+// ---- Rampage mode: a short run with one goal. Eat, grow, don't starve. ----
+const RAMPAGE = {
+  time: 180,               // seconds per run
+  grow: [12, 30, 55],      // bites to grow: Sedan -> SUV, SUV -> Truck, Truck -> Bus (counted from each size)
+  biteCar: 3,              // a wrecked vehicle is worth this many bites (people and props are 1)
+  hunger: 1.5,             // the tank drains this much faster than in Classic
+  grace: 5,                // seconds at the start before hunger kicks in
+};
 const store = {
   get(k, d) { try { const v = localStorage.getItem('bumpup.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('bumpup.' + k, JSON.stringify(v)); } catch (e) {} },
 };
 Settings.steer = store.get('steer', 'simple');
+Settings.mode = store.get('mode', 'rampage');

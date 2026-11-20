@@ -18,7 +18,7 @@
 <!-- ============ In-game HUD ============ -->
 <div id="hud" hidden>
   <div class="hud-score">
-    <span class="lbl">Score</span>
+    <span class="lbl">Score</span><span id="timer" class="timer" hidden>3:00</span>
     <span id="score" class="num">0</span>
     <div id="combo" class="combo"><span id="comboX">x2</span><span class="combo-track"><span id="comboBar"></span></span></div>
   </div>
@@ -92,6 +92,10 @@
       <button id="steerBtn" class="nav-btn quiet">Steering: Simple</button>
       <a class="nav-btn quiet" href="https://docs.google.com/forms/d/e/1FAIpQLSfWG7rj_qKf1EJ8JzqxfM2jHk3oJ6YjFZEB_8hO8e7AqtwDWw/viewform" target="_blank" rel="noopener">Feedback</a>
     </nav>
+    <div class="mode-row" role="group" aria-label="Game mode">
+      <button class="mode-btn" data-mode="rampage" aria-pressed="true"><b>Rampage</b><small>3 minutes · grow fast</small></button>
+      <button class="mode-btn" data-mode="classic" aria-pressed="false"><b>Classic</b><small>Endless · grow by score</small></button>
+    </div>
     <button id="playBtn" class="btn primary drive">Drive</button>
   </div>
 </section>
@@ -139,6 +143,7 @@
         <span><b>Tap the Boost button</b> for a burst of boost, or hold it to keep going. The ring around it is your <b>boost charge</b></span>
         <span><b>II button</b> to pause</span>
       </div>
+      <p class="tricks"><b>Rampage</b> (3 minutes): every smash is a bite, and enough bites make you grow. Vehicles are worth 3. Keep eating or your tank runs dry. <b>Classic</b>: endless, you grow by score.</p>
       <p class="tricks"><b>Slides:</b> with Drift steering, turn hard at speed and the car slides (Simple and Drag steering never slide); the longer the slide, the bigger the boost when you straighten up. <b>Tank:</b> one bar for fuel and damage. It drains as you drive and when you bump things; smashing refills it, and so do food trucks. <b>Crazy Dash:</b> boost from a standstill. <b>Loop the loops:</b> boost all the way round for big points; without boost you roll back or fall off. <b>Boost</b> needs charge: wreck vehicles and slide or take hard corners to fill the ring around the Boost button. Boosting gives double points and a fuller refill; while boosting at speed you <b>Power Ram</b> through amber objects for a little tank. <b>Hunt your size:</b> things far smaller than you barely score. Orange ramps launch you for air points.</p>
       <p class="credits">Engine and tyre recordings by freesound_community and olenchic (Pixabay).</p>
       <button id="tutorAgain" class="btn small-btn">Play the tutorial again</button>
