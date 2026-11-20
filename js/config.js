@@ -181,6 +181,12 @@ function weighted(list) {
 const Settings = { steer: 'simple', mode: 'rampage' };
 
 // ---- Rampage mode: a short run with one goal. Eat, grow, don't starve. ----
+// ---- Growing up is an evolution: a white orb swells and pulses around you, then bursts ----
+const EVOLVE_BUILD = 1.6;     // seconds the orb swells and pulses (the world runs in slow motion meanwhile)
+const EVOLVE_BLAST = .6;      // seconds the burst takes to spread
+const EVOLVE_RADIUS = 40;     // every vehicle within this many metres gets blown away (no points)...
+const EVOLVE_COIN = 5;        // ...but each one is worth this many coins
+
 const RAMPAGE = {
   time: 180,               // seconds per run
   grow: [12, 30, 55],      // bites to grow: Sedan -> SUV, SUV -> Truck, Truck -> Bus (counted from each size)

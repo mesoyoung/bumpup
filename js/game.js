@@ -149,10 +149,11 @@ const Game = {
       score: 0, combo: 0, comboTimer: 0, pending: 0, bestCombo: 0, biggest: null, biggestSize: 0,
       counts: {}, upgrades: [{ tier: 0, time: 0 }], time: 0, heat: 0, stars: 0, lastSmash: 0,
       shake: 0, kick: 0, fovKick: 0, hitPause: 0, slow: 0, deathReason: '', dyingT: 0, respawnQueue: [], lastBlock: 0,
-      mode: Settings.mode, bites: 0, timeLeft: RAMPAGE.time,
+      mode: Settings.mode, bites: 0, timeLeft: RAMPAGE.time, bonusCoins: 0, evolve: null,
     });
     Player.hunger = G.mode === 'rampage' ? 0 : 1;   // Rampage: a few seconds' grace, then hungry
     Ram.on = false; G.tutor = null; Player.noDrain = false; $('tutor').hidden = true;
+    scene.remove(evolveOrb);
     resetWorld();
     Missions.runStart();
     setThreatAll(1);
@@ -226,7 +227,7 @@ const Game = {
   }
   function gameOver() {
     Game.state = 'over';
-    const earned = Math.floor(G.score / COINS_PER * (mapById(save.map).coins || 1));
+    const earned = Math.floor(G.score / COINS_PER * (mapById(save.map).coins || 1)) + (G.bonusCoins || 0);
     save.coins += earned; store.set('coins', save.coins);
     const missionCoins = Missions.completedThisRun.reduce((s, m) => s + m.reward, 0);
     const setDone = Missions.settle();
@@ -245,6 +246,7 @@ const Game = {
     UI.banner('TIME!', `You became ${/^[AEIOU]/.test(TIERS[Player.tier].name) ? 'an' : 'a'} ${TIERS[Player.tier].name}`, 'tier go'); Sound.upgrade();
   }
   function die(reason) {
+    if (G.evolve) return;   // can't be hurt while evolving
     if (G.mode === 'rampage' && reason === 'Tank ran dry') reason = `Starved as ${/^[AEIOU]/.test(TIERS[Player.tier].name) ? 'an' : 'a'} ${TIERS[Player.tier].name}`;
     if (!Player.alive) return;
     Player.alive = false; G.deathReason = reason; Ram.on = false;
@@ -265,7 +267,63 @@ const Game = {
     const next = TIERS[Player.tier + 1];
     if (next && G.mode !== 'rampage' && G.score >= next.at) upgrade();   // Rampage grows by bites instead
   }
+  // ---------- growing up: an evolution ----------
+  // A white orb swells inside the car and pulses (slow motion, you can't be hurt), then bursts outward:
+  // you're the next size, and every vehicle nearby is blown away. No points for those, but coins.
+  const evolveMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .5, depthWrite: false });
+  const evolveOrb = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), evolveMat);
   function upgrade() {
+    if (G.evolve || !Player.alive) return;
+    G.evolve = { t: 0, blown: false }; Player.noDrain = true;
+    evolveMat.blending = Lighting.bright ? THREE.NormalBlending : THREE.AdditiveBlending; evolveMat.needsUpdate = true;
+    evolveOrb.scale.setScalar(.3); scene.add(evolveOrb);
+    Sound.star(); G.shake = Math.max(G.shake, .25);
+  }
+  function updateEvolve(rdt) {
+    const e = G.evolve, P = Player; if (!e) return;
+    e.t += rdt;
+    if (!e.blown) {
+      const k = Math.min(1, e.t / EVOLVE_BUILD), size = P.half * .95 + .5;   // just big enough to wrap the car
+      const pulse = 1 + .1 * Math.sin(e.t * (8 + e.t * 16));                // pulses faster and faster
+      evolveOrb.scale.setScalar((.4 + Math.min(1, k * 1.6) * size) * pulse);
+      evolveOrb.position.set(P.x, 1 + P.y, P.z);
+      evolveMat.opacity = .45 + .45 * k;
+      if (P.body) P.body.visible = k < .25 || Math.floor(e.t * (5 + k * 18)) % 2 === 0;   // flickers like it's changing
+      if (Math.random() < .5) emit(P.x + rand(-2, 2), rand(.5, 3), P.z + rand(-2, 2), 1, [0xffffff, 0xfff6c8], { speed: 2, up: 3, size: .15, life: .5, grav: -2 });
+      if (e.t >= EVOLVE_BUILD) { e.blown = true; e.bt = 0; evolveBurst(); }
+    } else {
+      e.bt += rdt;
+      const q = Math.min(1, e.bt / EVOLVE_BLAST);
+      evolveOrb.position.set(P.x, 1, P.z);
+      evolveOrb.scale.setScalar(3 + (1 - (1 - q) * (1 - q)) * EVOLVE_RADIUS);
+      evolveMat.opacity = .85 * (1 - q);
+      if (q >= 1) { scene.remove(evolveOrb); G.evolve = null; P.noDrain = !!G.tutor; }
+    }
+  }
+  function evolveBurst() {
+    const P = Player;
+    grow();                                                   // the new, bigger car
+    if (P.body) P.body.visible = true;
+    // blow every vehicle nearby away, whatever its colour: no points, but coins
+    let n = 0;
+    for (const c of [...G.traffic, ...G.police]) {
+      if (!c.alive) continue;
+      const dx = c.x - P.x, dz = c.z - P.z, d = Math.hypot(dx, dz);
+      if (d > EVOLVE_RADIUS) continue;
+      const f = 34 * (1 - d / EVOLVE_RADIUS * .6), ux = dx / (d || 1), uz = dz / (d || 1);
+      c.alive = false; if (c.ring) c.mesh.remove(c.ring);
+      shedWheels(scene, c.mesh, c.x, c.z, c.h, ux * f, uz * f, 10);
+      launchDebris(scene, c.mesh, c.x, c.z, c.h, ux * f, uz * f, 9 + rand(0, 6), 4.5, { spin: 1.8, flash: .1 });
+      if (!(c instanceof Police) && !c.parked) G.respawnQueue.push(G.time + rand(2, 5));
+      n++;
+    }
+    G.police = G.police.filter(c => c.alive);
+    if (n) { G.bonusCoins = (G.bonusCoins || 0) + n * EVOLVE_COIN; UI.float(P.x, 3, P.z, `+${n * EVOLVE_COIN} coins`, 'gold'); }
+    shockwave(scene, P.x, P.z, EVOLVE_RADIUS, 0xffffff); shockwave(scene, P.x, P.z, EVOLVE_RADIUS * .6, 0xffd23a);
+    emit(P.x, 1.5, P.z, 90, [0xffffff, 0xffd23a, paintColor()], { speed: 26, up: 16, size: .3, life: 1.3 });
+    G.shake = Math.max(G.shake, 1); G.fovKick = 12; G.kick = 1.6; UI.flash('white'); Sound.upgrade(); Sound.wreck();
+  }
+  function grow() {
     const t = Player.tier + 1;
     Player.setTier(t);
     G.upgrades.push({ tier: t, time: G.time });
@@ -278,14 +336,8 @@ const Game = {
     });
     setThreatAll(Player.level);
     applyPropTier(t);
-    Sound.upgrade(); UI.flash('gold');
-    emit(Player.x, 1, Player.z, 40, [0xffd23a, paintColor(), 0xffffff], { speed: 16, up: 14, size: .22, life: 1.1 });
     const what = { 1: 'Sedans, lamp posts and bus stops are prey. Police send SUVs now.', 2: 'SUVs and trees go down. SWAT vans are coming for you.', 3: 'Trucks are prey. Buses and armoured vans match you, and the tanks are out.' }[t];
     if (G.mode === 'rampage') {
-      // the big moment: slow-mo, a huge shockwave, and the world turns green around you
-      G.slow = Math.max(G.slow, 1.1); G.shake = Math.max(G.shake, .9); G.fovKick = 12; G.kick = 1.6;
-      shockwave(scene, Player.x, Player.z, 26, 0xffd23a); shockwave(scene, Player.x, Player.z, 16, 0xffffff);
-      emit(Player.x, 1, Player.z, 80, [0xffd23a, paintColor(), 0xffffff], { speed: 24, up: 18, size: .3, life: 1.4 });
       const eat = { 1: 'Cars are food now!', 2: 'SUVs and trees are food now!', 3: 'Trucks are food now! Go wild.' }[t];
       const nxt = RAMPAGE.grow[t];
       UI.banner('YOU GREW!', `${TIERS[t].name}. ${eat}${nxt ? ` Smash ${nxt} more to grow again.` : ''}`, 'tier grew');
@@ -496,7 +548,7 @@ const Game = {
 
   function collide() {
     const P = Player;
-    if (P.loop) return;   // up on a loop: nothing to hit
+    if (P.loop || G.evolve) return;   // up on a loop, or mid-evolution: nothing can touch you
     for (const it of hashQuery(P.x, P.z, P.half + 6)) {
       if (it.alive && testHit(it, 'prop', it.kind, it.x, it.z, it.rot, it.hl, it.hw)) if (!P.alive) return;
     }
@@ -611,10 +663,13 @@ const Game = {
   function frame(now) {
     requestAnimationFrame(frame);
     let dt = Math.min(.05, (now - last) / 1000); last = now;
+    const rdt = dt;
     if (Game.state === 'paused') { renderer.render(scene, camera); return; }
     if (G.hitPause > 0) { G.hitPause -= dt; renderer.render(scene, camera); return; }
     if (G.slow > 0) { G.slow -= dt; dt *= .35; }
     if (G.tutor && G.tutor.wait) dt *= .1;   // tutorial: the world crawls until you do what it asks
+    if (G.evolve && !G.evolve.blown) dt *= .25;   // evolving: everything slows while the orb swells
+    if (G.evolve && Game.state === 'play') updateEvolve(rdt);
     const playing = Game.state === 'play', dying = Game.state === 'dying';
     const who = playing || dying ? Player : dummy;
     if (playing || dying) { const s0 = Math.floor(G.time); G.time += dt; if (playing && Math.floor(G.time) !== s0) Missions.event('time', { time: G.time }); }

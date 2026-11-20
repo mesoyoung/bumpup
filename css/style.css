@@ -533,3 +533,5 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
 .timer[hidden] { display: none; }
 .banner.grew #bannerBig { font-size: clamp(44px, 13vw, 96px); white-space: nowrap; }
 @media (max-width: 640px) { .tagline { display: none; } }
+
+.flash.white { background: radial-gradient(rgba(255,255,255,.85), rgba(255,255,255,.35)); }

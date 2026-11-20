@@ -39,7 +39,8 @@ const UI = {
     // Classic grows by score; Rampage grows by bites (smashes)
     const frac = !nxt ? 1 : rp ? clamp(G.bites / RAMPAGE.grow[P.tier], 0, 1) : clamp((G.score - cur.at) / (nxt.at - cur.at), 0, 1);
     $('upFill').style.transform = `scaleX(${frac})`;
-    $('upLabel').textContent = !nxt ? 'Max size' : rp ? `Smash ${Math.max(0, RAMPAGE.grow[P.tier] - G.bites)} more → ${nxt.name}` : `${nxt.name} at ${fmt(nxt.at)}`;
+    if (G.evolve && !G.evolve.blown) { $('upFill').style.transform = 'scaleX(1)'; $('upLabel').textContent = `Evolving into ${nxt ? nxt.name : ''}…`; }
+    else $('upLabel').textContent = !nxt ? 'Max size' : rp ? `Smash ${Math.max(0, RAMPAGE.grow[P.tier] - G.bites)} more → ${nxt.name}` : `${nxt.name} at ${fmt(nxt.at)}`;
     const tm = $('timer'); tm.hidden = !rp;
     if (rp) { tm.textContent = mmss(Math.ceil(G.timeLeft)); tm.classList.toggle('low', G.timeLeft < 20); }
     document.querySelectorAll('.pip').forEach(p => {
