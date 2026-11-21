@@ -845,3 +845,7 @@ a.nav-btn { text-decoration: none; color: inherit; pointer-events: auto; }
   .seg { grid-template-columns: repeat(3, 1fr); }
 }
 .seg:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* ◀ ▶ sit level with the Boost button (centres lined up) */
+.steer-btns { bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
+@media (orientation: landscape) and (max-height: 500px) { .steer-btns { bottom: calc(81px + env(safe-area-inset-bottom, 0px)); } }
